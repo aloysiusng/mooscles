@@ -1,0 +1,1670 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <title>Mooscles — Workout Tracker</title>
+    <style>
+      :root{
+        --bg:#f3eee3; --surface:#fffcf4; --surface2:#e8dfc9; --ink:#1a2e22; --muted:#6f7d70;
+        --line:#ddd2b8; --accent:#c2410c; --accent-ink:#fff7ed; --accent-soft:rgba(194,65,12,.13);
+        --pine:#1b4332; --pine-ink:#fffcf4; --pine-soft:rgba(27,67,50,.10);
+        --gold:#b45309; --gold-soft:rgba(180,83,9,.14); --red:#c2410c; --danger:#b42318;
+        --thumb-line:rgba(27,67,50,.14);
+        color-scheme:light;
+      }
+      @media (prefers-color-scheme: dark){
+        :root{
+          --bg:#0e1511; --surface:#18231c; --surface2:#243329; --ink:#f2ecdc; --muted:#9cab9f;
+          --line:#2e4034; --accent:#f97316; --accent-soft:rgba(249,115,22,.20); --pine:#0f2a1e; --pine-soft:rgba(255,252,244,.08);
+          --gold:#f0b429; --gold-soft:rgba(240,180,41,.14);
+          --thumb-line:rgba(255,255,255,.14);
+          color-scheme:dark;
+        }
+      }
+      *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+      html,body{margin:0;padding:0;}
+      body{
+        background:var(--bg); color:var(--ink);
+        font-family:"Barlow",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+        font-size:16px; line-height:1.4;
+      }
+      button,[role="button"],select,summary,input:not([type="checkbox"],[type="radio"]){min-height:2.25rem;}
+      button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;}
+      input,select,textarea{font:inherit;color:var(--ink);}
+      .shell{max-width:560px;margin:0 auto;min-height:100dvh;background:var(--bg);position:relative;}
+      @media (min-width:600px){ .shell{border-left:1px solid var(--line);border-right:1px solid var(--line);} }
+      main{padding:0 16px 190px;}
+      /* ---------- headers ---------- */
+      .pagehead{padding:22px 2px 10px;}
+      .pagehead h1{font-family:"Barlow Condensed","Barlow",sans-serif;font-size:38px;font-weight:800;letter-spacing:.01em;text-transform:uppercase;line-height:.95;margin:0;color:var(--pine);}
+      @media (prefers-color-scheme: dark){ .pagehead h1{color:var(--ink);} }
+      .pagehead p{color:var(--muted);margin:4px 0 0;font-size:15px;}
+      .topbar{position:sticky;top:0;z-index:30;background:var(--bg);padding:10px 0 8px;display:flex;align-items:center;gap:10px;}
+      .topbar h1{font-family:"Barlow Condensed","Barlow",sans-serif;font-size:26px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;margin:0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+      .iconbtn{width:40px;height:40px;min-height:40px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;background:var(--surface);border:1px solid var(--line);font-size:18px;flex-shrink:0;}
+      /* ---------- cards & lists ---------- */
+      .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;margin:0 0 12px;box-shadow:0 1px 0 var(--line);}
+      .card h3{margin:0 0 2px;font-size:16px;font-weight:700;}
+      .card .sub{color:var(--muted);font-size:13.5px;}
+      .rowitem{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 14px;background:var(--surface);border:1px solid var(--line);border-radius:10px;margin:0 0 10px;min-height:64px;}
+      .rowitem .grow{flex:1;min-width:0;}
+      .rowitem .t{font-weight:650;font-size:15.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+      .rowitem .s{color:var(--muted);font-size:13px;margin-top:1px;}
+      .chev{color:var(--muted);font-size:20px;flex-shrink:0;}
+      .thumb{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#fffcf4;border:1px solid var(--thumb-line);overflow:hidden;}
+      .sectionlabel{font-family:"Barlow Condensed","Barlow",sans-serif;font-size:16px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--pine);margin:22px 2px 10px;}
+      @media (prefers-color-scheme: dark){ .sectionlabel{color:var(--muted);} }
+      .empty{border:1.5px dashed var(--line);border-radius:10px;padding:22px 16px;text-align:center;color:var(--muted);font-size:14.5px;background:var(--pine-soft);}
+      .empty b{color:var(--ink);display:block;font-size:16px;margin-bottom:4px;}
+      /* ---------- buttons ---------- */
+      .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:52px;border-radius:8px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:16px;letter-spacing:.02em;text-transform:uppercase;padding:10px 16px;}
+      .btn:active{opacity:.85;}
+      .btn.secondary{background:var(--surface);color:var(--pine);border:1.5px solid var(--pine);}
+      @media (prefers-color-scheme: dark){ .btn.secondary{color:var(--ink);border-color:var(--line);} }
+      .btn.ghost{background:transparent;color:var(--accent);border:0;min-height:44px;}
+      .btn.danger{background:var(--surface);color:var(--danger);border:1px solid var(--line);}
+      .btn.small{width:auto;min-height:40px;padding:6px 14px;font-size:14.5px;border-radius:10px;}
+      .btn[disabled]{opacity:.45;pointer-events:none;}
+      /* ---------- chips ---------- */
+      .chips{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px;}
+      .chip{padding:7px 13px;min-height:36px;border-radius:6px;background:var(--surface);border:1px solid var(--line);font-size:14px;font-weight:700;color:var(--muted);}
+      .chip.on{background:var(--pine);border-color:var(--pine);color:var(--pine-ink);}
+      /* ---------- inputs ---------- */
+      .search{width:100%;min-height:48px;border-radius:8px;border:1px solid var(--line);background:var(--surface);padding:10px 14px;font-size:16px;margin:0 0 12px;}
+      .field label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:0 0 5px;}
+      .field input,.field select{width:100%;min-height:48px;border-radius:8px;border:1px solid var(--line);background:var(--surface);padding:9px 12px;font-size:16px;}
+      .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+      /* ---------- bottom nav ---------- */
+      .tabbar{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:560px;z-index:40;
+        background:var(--surface);border-top:1px solid var(--line);display:flex;padding:6px 6px calc(6px + env(safe-area-inset-bottom));}
+      .tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 2px;min-height:52px;border-radius:12px;color:var(--muted);font-size:11px;font-weight:600;}
+      .tabbar button .ic{font-size:21px;line-height:1;}
+      .tabbar button.on{color:var(--accent);background:var(--accent-soft);}
+      .tabbar button .dot{position:absolute;}
+      .tabbadge{position:relative;}
+      .tabbadge::after{content:"";position:absolute;top:4px;right:calc(50% - 16px);width:8px;height:8px;border-radius:99px;background:var(--accent);display:none;}
+      .tabbadge.live::after{display:block;}
+      /* ---------- logger ---------- */
+      .loghead{position:sticky;top:0;z-index:30;background:var(--bg);padding:10px 0 10px;}
+      .logtitle{width:100%;background:transparent;border:0;font-family:"Barlow Condensed","Barlow",sans-serif;font-size:28px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;padding:4px 0;min-height:36px;}
+      .logtitle:focus{outline:none;border-bottom:2px solid var(--accent);}
+      .logmeta{display:flex;gap:14px;color:var(--muted);font-size:13.5px;font-weight:600;margin-top:2px;flex-wrap:wrap;}
+      .progress{height:6px;border-radius:99px;background:var(--surface2);overflow:hidden;margin-top:10px;}
+      .progress i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .3s ease;}
+      .excard{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 12px 8px;margin:0 0 14px;}
+      .excard.next{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);}
+      .exhead{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+      .exhead .grow{flex:1;min-width:0;}
+      .exhead .t{font-weight:700;font-size:16px;}
+      .exhead .s{color:var(--muted);font-size:12.5px;}
+      .restpill{flex-shrink:0;font-size:13px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:7px 11px;min-height:36px;}
+      .setgrid{display:grid;grid-template-columns:40px 1fr 74px 64px 48px 26px;gap:6px;align-items:center;}
+      .setgrid.head{font-size:11px;font-weight:700;letter-spacing:.05em;color:var(--muted);text-transform:uppercase;padding:4px 0 2px;}
+      .setrow{padding:5px 0;border-radius:10px;}
+      .setrow.done .num{background:var(--accent);color:#fff;border-color:var(--accent);}
+      .setrow.nextset{animation:pulse 1.6s ease-in-out infinite;border-radius:10px;}
+      @keyframes pulse{0%,100%{box-shadow:0 0 0 0 var(--accent-soft);}50%{box-shadow:0 0 0 3px var(--accent-soft);}}
+      @media (prefers-reduced-motion: reduce){ .setrow.nextset{animation:none;box-shadow:0 0 0 2px var(--accent);} }
+      .num{width:34px;height:34px;min-height:34px;border-radius:9px;background:var(--surface2);border:1px solid var(--line);font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;justify-self:center;}
+      .num.warmup{color:var(--gold);border-color:var(--gold);}
+      .prev{font-size:13.5px;color:var(--muted);text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;}
+      .prev b{color:var(--ink);font-weight:600;}
+      .setinput{width:100%;min-height:48px;border-radius:10px;border:1px solid var(--line);background:var(--bg);text-align:center;font-size:17px;font-weight:650;padding:6px 2px;font-variant-numeric:tabular-nums;}
+      .setinput:focus{outline:2px solid var(--accent);outline-offset:-1px;background:var(--surface);}
+      .setrow.done .setinput{background:var(--accent-soft);border-color:transparent;}
+      .check{width:48px;height:48px;min-height:48px;border-radius:12px;background:var(--surface2);color:var(--muted);font-size:21px;display:flex;align-items:center;justify-content:center;justify-self:end;}
+      .setrow.done .check{background:var(--accent);color:#fff;}
+      .setdel{width:26px;height:40px;min-height:40px;color:var(--muted);font-size:15px;}
+      .prtag{display:inline-block;font-size:11px;font-weight:800;color:var(--gold);background:var(--gold-soft);border-radius:6px;padding:2px 6px;margin-left:6px;vertical-align:2px;}
+      .addset{width:100%;min-height:44px;color:var(--accent);font-weight:700;font-size:14.5px;border-top:1px solid var(--line);margin-top:6px;}
+      /* ---------- rest bar ---------- */
+      .restbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(66px + env(safe-area-inset-bottom));width:calc(100% - 20px);max-width:540px;z-index:45;
+        background:var(--pine);color:#fffcf4;border-radius:10px;padding:12px 14px;display:none;box-shadow:0 10px 30px rgba(0,0,0,.35);}
+      .restbar.show{display:block;}
+      .restbar .rt{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1;}
+      .restbar .rl{font-size:12.5px;opacity:.75;font-weight:600;}
+      .restbar .rrow{display:flex;align-items:center;gap:10px;}
+      .restbar .rbtns{display:flex;gap:6px;margin-left:auto;}
+      .restbar .rbtns button{min-height:40px;padding:6px 12px;border-radius:10px;background:rgba(127,127,140,.35);color:inherit;font-weight:700;font-size:14px;}
+      .restbar .rprog{height:5px;border-radius:99px;background:rgba(127,127,140,.4);margin-top:10px;overflow:hidden;}
+      .restbar .rprog i{display:block;height:100%;background:var(--accent);transition:width .5s linear;}
+      /* ---------- sheet / modal ---------- */
+      .scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:60;display:none;}
+      .scrim.show{display:block;}
+      .sheet{position:fixed;left:50%;transform:translateX(-50%) translateY(105%);bottom:0;width:100%;max-width:560px;z-index:61;
+        background:var(--surface);border-radius:20px 20px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));transition:transform .25s ease;max-height:86dvh;overflow-y:auto;}
+      .sheet.show{transform:translateX(-50%) translateY(0);}
+      .sheet h2{margin:0 0 4px;font-family:"Barlow Condensed","Barlow",sans-serif;font-size:26px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;}
+      .sheet .sub{color:var(--muted);font-size:14px;margin:0 0 14px;}
+      .restopts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+      .restopts button{min-height:52px;border-radius:12px;background:var(--surface2);font-weight:700;font-size:16px;}
+      .restopts button.on{background:var(--accent);color:#fff;}
+      /* ---------- toast ---------- */
+      .toast{position:fixed;left:50%;transform:translateX(-50%) translateY(-16px);top:calc(12px + env(safe-area-inset-top));z-index:80;
+        background:var(--ink);color:var(--bg);font-weight:700;font-size:15px;border-radius:12px;padding:12px 18px;opacity:0;pointer-events:none;transition:all .25s ease;max-width:calc(100% - 32px);text-align:center;}
+      .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+      /* ---------- stats / misc ---------- */
+      .statgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 12px;}
+      .stat{background:var(--pine);border:1px solid var(--pine);border-radius:10px;padding:12px 10px;text-align:center;color:var(--pine-ink);}
+      .stat .v{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;}
+      .stat .l{font-size:12px;color:var(--muted);font-weight:600;margin-top:2px;}
+      .kv{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:15px;}
+      .kv:last-child{border-bottom:0;}
+      .kv span{color:var(--muted);}
+      .kv b{font-variant-numeric:tabular-nums;}
+      table.sets{width:100%;border-collapse:collapse;font-size:14.5px;}
+      table.sets th{text-align:left;color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;padding:4px 6px 6px 0;}
+      table.sets td{padding:5px 6px 5px 0;font-variant-numeric:tabular-nums;border-top:1px solid var(--line);}
+      .note{font-size:13.5px;color:var(--muted);line-height:1.5;}
+      .gold{color:var(--gold);font-weight:700;}
+      .danger-text{color:var(--danger);}
+      .hidden{display:none !important;}
+      .fab{position:fixed;right:max(16px,calc(50% - 264px));bottom:calc(84px + env(safe-area-inset-bottom));z-index:35;width:56px;height:56px;min-height:56px;border-radius:999px;background:var(--accent);color:#fff;font-size:28px;box-shadow:0 8px 22px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;}
+      .switchrow{display:flex;align-items:center;gap:10px;padding:10px 0;}
+      .switchrow .grow{flex:1;}
+      .switchrow input{width:22px;height:22px;min-height:22px;accent-color:var(--accent);}
+      svg.chart{width:100%;height:auto;display:block;}
+      .banner{background:var(--pine-soft);border:1px solid var(--line);border-radius:10px;padding:14px;margin:0 0 12px;font-size:14.5px;}
+      .banner b{display:block;font-size:15.5px;margin-bottom:2px;}
+      .stat .v{color:var(--pine-ink);} .stat .l{color:rgba(255,252,244,.78);}
+      /* ---------- exercise detail / demo ---------- */
+      .field textarea{width:100%;min-height:76px;border-radius:8px;border:1px solid var(--line);background:var(--surface);padding:9px 12px;font-size:16px;resize:vertical;}
+      .rowitem.clickable{cursor:pointer;}
+      .rowitem.clickable:active{opacity:.85;}
+      .taphead{display:flex;align-items:center;gap:10px;flex:1;min-width:0;text-align:left;padding:0;background:none;border:0;cursor:pointer;color:inherit;}
+      .demo-stage{background:radial-gradient(circle at 50% 88%, var(--pine-soft) 0 34%, transparent 35%), var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 6px 4px;text-align:center;margin:0 0 12px;overflow:hidden;}
+      .demo-stage svg{width:210px;height:210px;max-width:72vw;}
+      .demo-cap{font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);padding:2px 0 8px;}
+      .howto h3{margin:0 0 6px;}
+      .howto ul{margin:6px 0 0;padding:0;list-style:none;}
+      .howto li{padding:7px 0 7px 26px;position:relative;border-top:1px solid var(--line);font-size:14.5px;line-height:1.45;}
+      .howto li:first-child{border-top:0;}
+      .howto li::before{content:"✓";position:absolute;left:2px;top:7px;width:18px;height:18px;border-radius:50%;background:var(--pine);color:var(--pine-ink);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;}
+      .howto .focus li::before{content:"★";background:var(--accent);color:#fff;}
+      .prog-delta{font-weight:800;color:var(--pine);}
+      @media (prefers-color-scheme: dark){ .prog-delta{color:var(--gold);} }
+      .single-dot{display:flex;align-items:center;gap:12px;padding:8px 2px 2px;}
+      .single-dot .dot{width:16px;height:16px;border-radius:50%;background:var(--accent);flex-shrink:0;box-shadow:0 0 0 6px var(--accent-soft);}
+      .note-ind{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:var(--pine);background:var(--pine-soft);border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin-top:5px;max-width:100%;}
+      @media (prefers-color-scheme: dark){ .note-ind{color:var(--gold);background:var(--gold-soft);} }
+      .note-preview{display:block;color:var(--muted);font-size:13px;line-height:1.35;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+      .exnote-area{width:100%;min-height:220px;border-radius:10px;border:1px solid var(--line);background:var(--surface);padding:12px 14px;font-size:16px;line-height:1.55;resize:vertical;font-family:inherit;color:var(--ink);}
+      .exnote-area:focus{outline:2px solid var(--accent);outline-offset:-1px;}
+      .exnote-meta{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.45;}
+      /* ---------- reel routines: AMRAP + notes ---------- */
+      .modebadge{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#fff;background:var(--accent);border-radius:6px;padding:2px 7px;vertical-align:2px;margin-left:6px;}
+
+      .routine-notes{font-size:14.5px;line-height:1.55;}
+      .routine-notes p{margin:0 0 8px;}
+      .routine-notes p:last-child{margin-bottom:0;}
+      .creditline{font-size:13.5px;color:var(--muted);margin-top:10px;}
+      .creditline a{color:var(--accent);font-weight:700;}
+      .phase-note{font-size:13.5px;color:var(--accent);font-weight:650;margin-top:2px;}
+      .amrap-clock{font-family:"Barlow Condensed","Barlow",sans-serif;font-size:76px;font-weight:800;line-height:1;text-align:center;font-variant-numeric:tabular-nums;color:var(--pine);padding:6px 0 0;}
+      @media (prefers-color-scheme: dark){ .amrap-clock{color:var(--ink);} }
+      .amrap-clock.done{color:var(--accent);}
+      .roundcount{display:flex;align-items:center;justify-content:center;gap:14px;margin:10px 0 4px;}
+      .roundcount .n{font-size:44px;font-weight:800;min-width:64px;text-align:center;font-variant-numeric:tabular-nums;}
+      .roundcount button{width:52px;height:52px;min-height:52px;border-radius:50%;background:var(--surface);border:1.5px solid var(--pine);font-size:26px;font-weight:800;color:var(--pine);display:flex;align-items:center;justify-content:center;}
+      @media (prefers-color-scheme: dark){ .roundcount button{color:var(--ink);border-color:var(--line);} }
+      .amrap-ex{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line);}
+      .amrap-ex:first-of-type{border-top:0;}
+      .amrap-ex .reps{margin-left:auto;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;}
+      .amrap-ex .tick{width:44px;height:44px;min-height:44px;border-radius:12px;background:var(--surface2);color:var(--muted);font-size:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+      .amrap-ex.tickdone .tick{background:var(--accent);color:#fff;}
+      .amrap-ex.tickdone .t{color:var(--muted);text-decoration:line-through;}
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <main id="app"></main>
+    </div>
+
+    <nav class="tabbar" id="tabbar" aria-label="Main">
+      <button data-tab="train"><span class="ic">🏋️</span>Train</button>
+      <button data-tab="routines"><span class="ic">📋</span>Routines</button>
+      <button data-tab="exercises"><span class="ic">💪</span>Exercises</button>
+      <button data-tab="history"><span class="ic">🕘</span>History</button>
+      <button data-tab="measures"><span class="ic">📏</span>Measures</button>
+    </nav>
+
+    <div class="restbar" id="restbar" role="timer" aria-label="Rest timer">
+      <div class="rrow">
+        <div>
+          <div class="rt" id="restTime">0:00</div>
+          <div class="rl" id="restLabel">Rest</div>
+        </div>
+        <div class="rbtns">
+          <button id="restMinus" aria-label="Minus 15 seconds">−15s</button>
+          <button id="restPlus" aria-label="Plus 15 seconds">+15s</button>
+          <button id="restSkip">Skip</button>
+        </div>
+      </div>
+      <div class="rprog"><i id="restProg" style="width:100%"></i></div>
+    </div>
+
+    <div class="scrim" id="scrim"></div>
+    <div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
+    <div class="toast" id="toast" role="status"></div>
+    <input type="file" id="fileInput" class="hidden" accept=".json,.csv" />
+
+    <script>
+    "use strict";
+    /* =====================================================================
+       Mooscles
+       A workout logger that runs entirely in this browser. Each person
+       who opens the link gets their own routines, history and measures,
+       stored on their own device. No account, no server.
+       ===================================================================== */
+
+    /* ---------------- catalogue ---------------- */
+    var CATALOG = [
+      ["Bench Press (Barbell)","Chest","Barbell"],["Bench Press (Dumbbell)","Chest","Dumbbell"],
+      ["Incline Bench Press (Barbell)","Chest","Barbell"],["Incline Bench Press (Dumbbell)","Chest","Dumbbell"],
+      ["Chest Fly (Dumbbell)","Chest","Dumbbell"],["Cable Fly","Chest","Cable"],
+      ["Push Up","Chest","Bodyweight"],["Dip (Chest)","Chest","Bodyweight"],
+      ["Squat (Barbell)","Legs","Barbell"],["Deadlift (Barbell)","Back","Barbell"],
+      ["Romanian Deadlift (Barbell)","Legs","Barbell"],["Leg Press","Legs","Machine"],
+      ["Leg Extension","Legs","Machine"],["Leg Curl","Legs","Machine"],
+      ["Calf Raise (Machine)","Legs","Machine"],["Lunge (Dumbbell)","Legs","Dumbbell"],
+      ["Hip Thrust (Barbell)","Glutes","Barbell"],["Overhead Press (Barbell)","Shoulders","Barbell"],
+      ["Overhead Press (Dumbbell)","Shoulders","Dumbbell"],["Lateral Raise (Dumbbell)","Shoulders","Dumbbell"],
+      ["Lateral Raise (Cable)","Shoulders","Cable"],["Face Pull (Cable)","Shoulders","Cable"],
+      ["Shrug (Dumbbell)","Traps","Dumbbell"],["Pull Up","Back","Bodyweight"],
+      ["Chin Up","Back","Bodyweight"],["Lat Pulldown (Cable)","Back","Cable"],
+      ["Row (Barbell)","Back","Barbell"],["Row (Dumbbell)","Back","Dumbbell"],
+      ["Seated Cable Row","Back","Cable"],["T-Bar Row","Back","Barbell"],
+      ["Bicep Curl (Barbell)","Biceps","Barbell"],["Bicep Curl (Dumbbell)","Biceps","Dumbbell"],
+      ["Hammer Curl (Dumbbell)","Biceps","Dumbbell"],["Preacher Curl (Barbell)","Biceps","Barbell"],
+      ["Incline Curl (Dumbbell)","Biceps","Dumbbell"],["Tricep Pushdown (Cable)","Triceps","Cable"],
+      ["Skullcrusher (Barbell)","Triceps","Barbell"],["Overhead Tricep Extension (Dumbbell)","Triceps","Dumbbell"],
+      ["Close Grip Bench Press (Barbell)","Triceps","Barbell"],["Plank","Core","Bodyweight"],
+      ["Cable Crunch","Core","Cable"],["Hanging Leg Raise","Core","Bodyweight"],
+      ["Kettlebell Swing","Full Body","Kettlebell"],["Kettlebell Goblet Squat","Legs","Kettlebell"],
+      ["Kettlebell Deadlift","Back","Kettlebell"],["Turkish Get-Up","Full Body","Kettlebell"],
+      ["Kettlebell Clean","Full Body","Kettlebell"],["Kettlebell Press","Shoulders","Kettlebell"],
+      ["Kettlebell Snatch","Full Body","Kettlebell"],["Kettlebell Halo","Shoulders","Kettlebell"],
+      ["Kettlebell Farmer's Carry","Full Body","Kettlebell"],["Kettlebell Windmill","Core","Kettlebell"],
+      ["Kettlebell Complex — Clean, Press & Squat","Full Body","Kettlebell"],
+      ["Kettlebell Armor Building Complex","Full Body","Kettlebell"],
+      ["Double Kettlebell Complex","Full Body","Kettlebell"],
+      ["Kettlebell Flow — Swing, Clean, Press, Snatch","Full Body","Kettlebell"],
+      ["Kettlebell Clean + Thruster","Full Body","Kettlebell"],
+      ["Kettlebell Ballistic Row","Back","Kettlebell"],
+      ["Kettlebell Push-Up","Chest","Kettlebell"],
+      ["Kettlebell Devil's Halo","Shoulders","Kettlebell"],
+      ["Kettlebell Bent-Over Row","Back","Kettlebell"],
+      ["Kettlebell Alternating Reverse Lunge","Legs","Kettlebell"],
+      ["Kettlebell Toe Taps","Core","Kettlebell"],
+      ["Kettlebell Horn Push-Up","Chest","Kettlebell"]
+    ].map(function(r,i){ return { id:"c"+(i+1), name:r[0], muscleGroup:r[1], equipment:r[2], isCustom:false }; });
+
+    var TEMPLATES = [
+      { name:"Push", exercises:[["Bench Press (Barbell)",4,"5-8",180],["Incline Bench Press (Dumbbell)",3,"8-12",90],["Overhead Press (Barbell)",3,"6-10",120],["Lateral Raise (Dumbbell)",3,"12-15",60],["Tricep Pushdown (Cable)",3,"10-15",60]] },
+      { name:"Pull", exercises:[["Deadlift (Barbell)",3,"5",240],["Pull Up",4,"6-10",120],["Row (Barbell)",3,"8-12",120],["Face Pull (Cable)",3,"12-15",60],["Bicep Curl (Dumbbell)",3,"10-12",60]] },
+      { name:"Legs", exercises:[["Squat (Barbell)",4,"5-8",180],["Romanian Deadlift (Barbell)",3,"8-10",120],["Leg Press",3,"10-12",120],["Leg Curl",3,"12-15",60],["Calf Raise (Machine)",4,"12-15",60]] },
+      { name:"Upper", exercises:[["Bench Press (Barbell)",4,"5-8",180],["Row (Barbell)",4,"8-10",120],["Overhead Press (Dumbbell)",3,"8-12",90],["Lat Pulldown (Cable)",3,"10-12",90],["Bicep Curl (Dumbbell)",2,"10-12",60],["Tricep Pushdown (Cable)",2,"10-15",60]] },
+      { name:"Lower", exercises:[["Squat (Barbell)",4,"5-8",180],["Hip Thrust (Barbell)",3,"8-12",120],["Lunge (Dumbbell)",3,"10",90],["Leg Extension",3,"12-15",60],["Calf Raise (Machine)",4,"12-15",60]] },
+      { name:"Kettlebell Complex", exercises:[["Kettlebell Swing",4,"12",90],["Kettlebell Goblet Squat",3,"8-10",90],["Kettlebell Clean",3,"6 each side",90],["Kettlebell Press",3,"6 each side",90],["Turkish Get-Up",2,"3 each side",120]] },
+      { name:"KB Complex A — 20-Min AMRAP", mode:"amrap", durationMin:20,
+        exercises:[["Kettlebell Clean + Thruster",1,"10",0],["Kettlebell Ballistic Row",1,"20",0],["Kettlebell Push-Up",1,"10",0],["Kettlebell Devil's Halo",1,"6",0]],
+        notes:"One kettlebell, one clock. Work through all four moves in order — that is one round — then go again. Rest only as much as you need and keep the clock running. Your score is the rounds you finish in 20 minutes.",
+        weightGuide:"One bell for the whole workout. The example used 20 kg. Starting guide: beginners 8–12 kg, intermediate 16–20 kg, advanced 20–28 kg or heavier. Choose a bell you can clean and press overhead with clean form when tired — the thruster sets the limit.",
+        scaling:"New to this or short on time? Run 10–15 minutes instead of 20. Swap the clean + thruster for a goblet squat into a push press, the ballistic row for a regular controlled row, the kettlebell push-up for a standard, incline or knee push-up, and bring the Devil's Halo down to 3–4 reps.",
+        creditName:"Fit Dad Co", creditUrl:"https://www.instagram.com/reel/Da0kKLshYUE/" },
+      { name:"KB Complex B — 20-Min AMRAP", mode:"amrap", durationMin:20,
+        exercises:[["Kettlebell Bent-Over Row",1,"10",0],["Kettlebell Swing",1,"15",0],["Kettlebell Clean + Thruster",1,"8",0],["Kettlebell Alternating Reverse Lunge",1,"10",0],["Kettlebell Toe Taps",1,"20",0],["Kettlebell Horn Push-Up",1,"10",0]],
+        notes:"One kettlebell, six moves in order — that is one round. Keep cycling for 20 minutes, resting as needed while the clock keeps running. Count the full rounds you complete; a part-finished round still counts as honest work, just note it when you log.",
+        weightGuide:"One bell for the whole workout. The example used 20 kg. Starting guide: beginners 8–12 kg, intermediate 12–16 kg, advanced 20–24 kg. If your thrusters fall apart, the bell is too heavy — drop down and keep moving.",
+        scaling:"Scale by load and time first: pick a lighter bell or run 12–15 minutes while you learn the moves. Keep the order the same so you can compare your rounds next time.",
+        creditName:"Fit Dad Co", creditUrl:"https://www.instagram.com/reel/Dbhkb0IRShW/" }
+    ];
+
+    var MUSCLES = ["Chest","Back","Legs","Shoulders","Biceps","Triceps","Glutes","Core","Traps","Full Body","Other"];
+    var MEASURE_FIELDS = [
+      ["weightKg","Weight","kg"],["fatPercent","Body fat","%"],["waistCm","Waist","cm"],
+      ["chestCm","Chest","cm"],["neckCm","Neck","cm"],["shoulderCm","Shoulders","cm"],
+      ["leftBicepCm","Bicep L","cm"],["rightBicepCm","Bicep R","cm"],
+      ["leftForearmCm","Forearm L","cm"],["rightForearmCm","Forearm R","cm"],
+      ["abdomenCm","Abdomen","cm"],["hipsCm","Hips","cm"],
+      ["leftThighCm","Thigh L","cm"],["rightThighCm","Thigh R","cm"],
+      ["leftCalfCm","Calf L","cm"],["rightCalfCm","Calf R","cm"]
+    ];
+    var REST_PRESETS = [0,30,60,90,120,150,180,240,300];
+
+    /* ---------------- storage ---------------- */
+    var LS_KEY = "wt-shareable-v1";
+    var LS_DRAFT = "wt-shareable-draft";
+    function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+    function blankState(){ return { customExercises:[], routines:[], workouts:[], measurements:[], exerciseNotes:{}, prefs:{sound:true, vibrate:true} }; }
+    function loadState(){
+      try{ var raw = localStorage.getItem(LS_KEY); if(raw){ var s = JSON.parse(raw); if(s && Array.isArray(s.workouts)) return Object.assign(blankState(), s); } }catch(e){}
+      return blankState();
+    }
+    var S = loadState();
+    if(!S.exerciseNotes) S.exerciseNotes = {};
+    // migrate any notes stored on custom exercises into the notes store
+    try{ (S.customExercises||[]).forEach(function(e){ if(e.notes && !S.exerciseNotes[e.id]) S.exerciseNotes[e.id]=e.notes; }); }catch(e){}
+    function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(S)); }catch(e){} }
+    function allExercises(){ return CATALOG.concat(S.customExercises); }
+    function exById(id){ return allExercises().find(function(e){ return e.id===id; }) || null; }
+    function exByName(name){ return allExercises().find(function(e){ return e.name===name; }) || null; }
+    function getExerciseNotes(id){
+      if(!id) return "";
+      if(S.exerciseNotes && typeof S.exerciseNotes[id]==="string" && S.exerciseNotes[id]) return S.exerciseNotes[id];
+      var ex = exById(id);
+      if(ex && ex.notes) return ex.notes;
+      return "";
+    }
+    function hasExerciseNote(id){ return !!getExerciseNotes(id).trim(); }
+    function notePreviewText(id){ var t=getExerciseNotes(id).trim().replace(/\s+/g," "); return t.length>72 ? t.slice(0,72)+"…" : t; }
+    function setExerciseNotes(id, text){
+      if(!S.exerciseNotes) S.exerciseNotes = {};
+      var v = (text||"").trim();
+      if(v) S.exerciseNotes[id]=v; else delete S.exerciseNotes[id];
+      var ex = S.customExercises.find(function(e){ return e.id===id; });
+      if(ex) ex.notes = v;
+      save();
+    }
+
+    function loadDraft(){ try{ var r = localStorage.getItem(LS_DRAFT); return r ? JSON.parse(r) : null; }catch(e){ return null; } }
+    function saveDraft(){ try{ if(draft) localStorage.setItem(LS_DRAFT, JSON.stringify(draft)); else localStorage.removeItem(LS_DRAFT); }catch(e){} }
+    var draft = loadDraft();
+
+    /* ---------------- helpers ---------------- */
+    function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+    function fmtNum(n){ if(n==null || n==="" || isNaN(n)) return "–"; var v = Math.round(n*100)/100; return String(v); }
+    function fmtVol(kg){ if(kg>=1000) return (Math.round(kg/100)/10).toLocaleString()+" t"; return Math.round(kg).toLocaleString()+" kg"; }
+    function fmtClock(sec){ sec=Math.max(0,Math.floor(sec)); var h=Math.floor(sec/3600), m=Math.floor(sec%3600/60), s=sec%60; return (h>0? h+":" + String(m).padStart(2,"0") : m) + ":" + String(s).padStart(2,"0"); }
+    function fmtRest(sec){ if(!sec) return "Off"; var m=Math.floor(sec/60), s=sec%60; return m===0 ? s+"s" : (s===0 ? m+":00" : m+":"+String(s).padStart(2,"0")); }
+    function fmtDate(iso){ var d=new Date(iso); return d.toLocaleDateString(undefined,{weekday:"short", day:"numeric", month:"short", year:"numeric"}); }
+    function fmtDateShort(iso){ var d=new Date(iso); return d.toLocaleDateString(undefined,{day:"numeric", month:"short"}); }
+    function todayStr(){ var d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+    function est1rm(w,r){ if(w==null||r==null||r<1) return null; if(r===1) return w; if(r>15) return null; return w*(1+r/30); }
+    function workoutVolume(w){ var v=0; w.exercises.forEach(function(ex){ ex.sets.forEach(function(s){ if(s.completed && s.weightKg!=null && s.reps!=null) v += s.weightKg*s.reps; }); }); return v; }
+    function toast(msg, ms){
+      var t = document.getElementById("toast"); t.textContent = msg; t.classList.add("show");
+      clearTimeout(toast._t); toast._t = setTimeout(function(){ t.classList.remove("show"); }, ms||2600);
+    }
+
+    /* ---------------- audio / vibration ---------------- */
+    var audioCtx = null;
+    function primeAudio(){ try{ if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==="suspended") audioCtx.resume(); }catch(e){} }
+    function chime(notes){
+      if(!S.prefs.sound) return; primeAudio(); if(!audioCtx) return;
+      try{
+        notes.forEach(function(f,i){
+          var o = audioCtx.createOscillator(), g = audioCtx.createGain(), t0 = audioCtx.currentTime + i*0.16;
+          o.type="sine"; o.frequency.value=f; g.gain.setValueAtTime(0.0001,t0);
+          g.gain.exponentialRampToValueAtTime(0.22,t0+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t0+0.3);
+          o.connect(g); g.connect(audioCtx.destination); o.start(t0); o.stop(t0+0.32);
+        });
+      }catch(e){}
+    }
+    function buzz(p){ if(S.prefs.vibrate && navigator.vibrate) { try{ navigator.vibrate(p); }catch(e){} } }
+    document.addEventListener("pointerdown", primeAudio, { passive:true });
+
+    /* ---------------- exercise thumbnails ----------------
+       Square badge, figure performing the movement,
+       working muscle picked out in rust. Original drawings. */
+    function thumbKind(name, group){
+      var n = (name||"").toLowerCase(), g = (group||"").toLowerCase();
+      if(/kettlebell|swing/.test(n)){
+        if(/thruster/.test(n)) return "overhead";
+        if(/ballistic row|bent-over row|bent over row/.test(n)) return "bentRow";
+        if(/push-up|push up|pushup/.test(n)) return "bench";
+        if(/toe tap/.test(n)) return "core";
+        if(/reverse lunge|lunge/.test(n)) return "lunge";
+        if(/goblet|squat/.test(n)) return "squat";
+        if(/press|snatch|halo/.test(n)) return "overhead";
+        if(/turkish|get-up|windmill/.test(n)) return "core";
+        if(/deadlift/.test(n)) return "deadlift";
+        if(/row/.test(n)) return "bentRow";
+        return "kettlebell";
+      }
+      if(/deadlift|romanian|good morning|hip thrust|hyperextension|back extension/.test(n)) return "deadlift";
+      if(/bent over|bent-over/.test(n)) return "bentRow";
+      if(/bench press|close grip bench|chest press|floor press|push up|push-up|pushup/.test(n)) return "bench";
+      if(/squat|leg press|hack/.test(n)) return "squat";
+      if(/leg extension/.test(n)) return "legExtension";
+      if(/leg curl|hamstring curl/.test(n)) return "legCurl";
+      if(/calf/.test(n)) return "calf";
+      if(/overhead press|shoulder press|arnold|military/.test(n)) return "overhead";
+      if(/lateral raise|rear delt|face pull|reverse fly|upright row|shrug/.test(n)) return "raise";
+      if(/pull up|pull-up|chin up|chin-up|lat pulldown|pulldown|straight arm/.test(n)) return "pull";
+      if(/tricep|skullcrusher|kickback|pushdown/.test(n)) return "tricep";
+      if(/curl/.test(n)) return "curl";
+      if(/fly|crossover|pec deck/.test(n)) return "fly";
+      if(/dip/.test(n)) return "dip";
+      if(/lunge|split squat|step up|step-up/.test(n)) return "lunge";
+      if(/crunch|sit up|sit-up|leg raise|twist|plank/.test(n)) return "core";
+      if(/row/.test(n)) return "row";
+      if(g.indexOf("chest")>=0) return "bench";
+      if(g.indexOf("back")>=0) return "row";
+      if(g.indexOf("bicep")>=0) return "curl";
+      if(g.indexOf("tricep")>=0) return "tricep";
+      if(g.indexOf("shoulder")>=0) return "overhead";
+      if(/leg|quad|glute|hip/.test(g)) return "squat";
+      if(/core|ab/.test(g)) return "core";
+      if(g.indexOf("trap")>=0) return "raise";
+      if(g.indexOf("forearm")>=0) return "curl";
+      return "generic";
+    }
+    function thumbFigure(kind){
+      var ink="#1b4332", hl="#c2410c";
+      var head=function(cx,cy){ return '<g stroke="none"><circle cx="'+cx+'" cy="'+cy+'" r="5.8" fill="#fff3d6" stroke="'+ink+'" stroke-width="1.9"/>'
+        + '<circle cx="'+(cx-2)+'" cy="'+(cy-0.5)+'" r="0.8" fill="'+ink+'"/><circle cx="'+(cx+2)+'" cy="'+(cy-0.5)+'" r="0.8" fill="'+ink+'"/>'
+        + '<path d="M '+(cx-1.7)+' '+(cy+1.7)+' Q '+cx+' '+(cy+3.2)+' '+(cx+1.7)+' '+(cy+1.7)+'" fill="none" stroke="'+ink+'" stroke-width="1.1" stroke-linecap="round"/>'
+        + '<circle cx="'+(cx-3.6)+'" cy="'+(cy+1.1)+'" r="1.05" fill="#f4a261" opacity="0.75"/><circle cx="'+(cx+3.6)+'" cy="'+(cy+1.1)+'" r="1.05" fill="#f4a261" opacity="0.75"/>'
+        + '<path d="M '+cx+' '+(cy-5.8)+' q 2.2 -2.2 3.8 -0.4" fill="none" stroke="'+ink+'" stroke-width="1.2" stroke-linecap="round"/></g>'; };
+      var plate=function(cx,cy,r){ return '<circle cx="'+cx+'" cy="'+cy+'" r="'+(r||5)+'" fill="none" stroke="'+ink+'" stroke-width="2.2"/>'; };
+      var F = {
+        deadlift: head(15,20)+'<path d="M18 24 L34 29" stroke="'+hl+'" stroke-width="4.4"/><path d="M18 24 L34 29 L37 42 L36 54"/><path d="M34 29 L30 41 L33 54"/><path d="M21 26 L33 46"/><path d="M26 52 H50" stroke-width="2.2"/>'+plate(28,52,4.6)+plate(48,52,4.6)+'<path d="M30 57 H42" stroke-width="2"/>',
+        bentRow: head(15,19)+'<path d="M18 23 L34 28" stroke="'+hl+'" stroke-width="4.4"/><path d="M18 23 L34 28 L37 41 L36 54"/><path d="M34 28 L30 40 L33 54"/><path d="M21 25 L30 33 L38 38"/><path d="M30 40 H48" stroke-width="2.2"/>'+plate(32,40,4.2)+plate(46,40,4.2),
+        bench: head(13,36)+'<path d="M17 38 H44"/><path d="M30 37 L31 24"/><path d="M36 37 L37 24"/><path d="M22 22 H50" stroke-width="2.2"/>'+plate(24,22,4.4)+plate(48,22,4.4)+'<ellipse cx="31" cy="34.5" rx="4.5" ry="2.6" fill="'+hl+'" stroke="none"/><path d="M12 43 H52 M18 43 V52 M46 43 V52" stroke-width="2.2"/><path d="M44 38 L50 46 L49 54"/>',
+        squat: head(32,13)+'<path d="M14 20 H50" stroke-width="2.2"/>'+plate(16,20,4.2)+plate(48,20,4.2)+'<path d="M32 18 L30 32"/><path d="M29 21 L20 26"/><path d="M35 21 L44 26"/><ellipse cx="27" cy="40" rx="3.4" ry="5.5" fill="'+hl+'" stroke="none"/><ellipse cx="37" cy="40" rx="3.4" ry="5.5" fill="'+hl+'" stroke="none"/><path d="M30 32 L22 38 L26 52"/><path d="M31 32 L40 38 L37 52"/><path d="M22 55 H30 M33 55 H41" stroke-width="2"/>',
+        overhead: head(32,24)+'<path d="M16 10 H48" stroke-width="2.2"/>'+plate(18,10,3.8)+plate(46,10,3.8)+'<path d="M32 29 L32 42"/><path d="M30 31 L22 14"/><path d="M34 31 L42 14"/><circle cx="26.5" cy="30" r="3.4" fill="'+hl+'" stroke="none"/><circle cx="37.5" cy="30" r="3.4" fill="'+hl+'" stroke="none"/><path d="M32 42 L28 56 M32 42 L36 56"/>',
+        curl: head(30,12)+'<path d="M30 17 L30 36"/><path d="M28 20 L24 32"/><ellipse cx="23" cy="29" rx="2.8" ry="4.6" fill="'+hl+'" stroke="none"/><path d="M24 32 L32 26"/><circle cx="35" cy="24" r="3.6"/><path d="M32 20 L38 30 L44 27"/><circle cx="47" cy="26" r="3.4"/><path d="M30 36 L26 56 M30 36 L35 56"/>',
+        tricep: head(32,18)+'<path d="M32 23 L32 40"/><path d="M30 26 L24 16 L30 10"/><ellipse cx="25" cy="20" rx="2.6" ry="4.2" fill="'+hl+'" stroke="none"/><circle cx="31" cy="8" r="3.6"/><path d="M34 26 L40 34 L46 32"/><path d="M32 40 L27 56 M32 40 L37 56"/>',
+        raise: head(32,14)+'<path d="M32 19 L32 38"/><circle cx="24" cy="21" r="3.6" fill="'+hl+'" stroke="none"/><circle cx="40" cy="21" r="3.6" fill="'+hl+'" stroke="none"/><path d="M28 22 L14 26"/><path d="M36 22 L50 26"/><circle cx="11" cy="27" r="3.2"/><circle cx="53" cy="27" r="3.2"/><path d="M32 38 L27 56 M32 38 L37 56"/>',
+        pull: '<path d="M10 10 H54" stroke-width="3"/>'+head(32,22)+'<path d="M29 18 L20 11"/><path d="M35 18 L44 11"/><path d="M32 27 L32 40"/><path d="M27 30 L27 38" stroke="'+hl+'" stroke-width="4.2"/><path d="M37 30 L37 38" stroke="'+hl+'" stroke-width="4.2"/><path d="M32 40 L26 55 M32 40 L38 55"/>',
+        row: head(24,16)+'<path d="M26 21 L28 34"/><rect x="27" y="26" width="7" height="7" rx="2" fill="'+hl+'" stroke="none"/><path d="M28 25 L40 30 L48 28"/><path d="M48 28 H56" stroke-width="2"/><path d="M28 34 L42 38 L52 36"/><path d="M28 34 L38 44 L50 46"/><path d="M14 50 H54" stroke-width="2"/>',
+        fly: head(32,13)+'<path d="M32 18 L32 38"/><ellipse cx="27" cy="24" rx="3.6" ry="2.8" fill="'+hl+'" stroke="none"/><ellipse cx="37" cy="24" rx="3.6" ry="2.8" fill="'+hl+'" stroke="none"/><path d="M28 21 L13 17"/><path d="M36 21 L51 17"/><circle cx="10" cy="16" r="3"/><circle cx="54" cy="16" r="3"/><path d="M32 38 L27 56 M32 38 L37 56"/>',
+        legExtension: head(22,14)+'<path d="M24 19 L26 32"/><path d="M26 24 L16 30"/><path d="M26 32 L38 33"/><ellipse cx="33" cy="32" rx="5" ry="2.8" fill="'+hl+'" stroke="none"/><path d="M38 33 L50 28"/><path d="M26 32 L34 44 L46 46"/><path d="M16 36 V52 M50 24 V52 M12 52 H54" stroke-width="2.2"/>',
+        legCurl: head(12,32)+'<path d="M16 34 H36"/><path d="M36 34 L46 26"/><ellipse cx="40" cy="31" rx="4.6" ry="2.6" fill="'+hl+'" stroke="none"/><path d="M46 26 L48 18"/><circle cx="48" cy="15" r="3.4"/><path d="M10 42 H54 M16 42 V50 M48 42 V50" stroke-width="2.2"/>',
+        calf: head(32,11)+'<path d="M32 16 L32 34"/><path d="M28 20 L20 30"/><path d="M36 20 L44 30"/><path d="M32 34 L29 46"/><path d="M32 34 L35 46"/><ellipse cx="28.5" cy="43" rx="2.6" ry="4" fill="'+hl+'" stroke="none"/><ellipse cx="35.5" cy="43" rx="2.6" ry="4" fill="'+hl+'" stroke="none"/><path d="M29 46 L26 53 M35 46 L38 53"/><path d="M20 56 H44" stroke-width="2"/>',
+        core: head(18,28)+'<path d="M21 32 L34 36"/><rect x="25" y="30" width="7" height="9" rx="2" fill="'+hl+'" stroke="none" transform="rotate(72 28 34)"/><path d="M22 30 L30 20"/><path d="M34 36 L42 24 L50 36"/><path d="M34 36 L44 38 L52 37"/><path d="M8 44 H56" stroke-width="2"/>',
+        dip: head(32,13)+'<path d="M32 18 L31 32"/><ellipse cx="28" cy="25" rx="2.6" ry="4.4" fill="'+hl+'" stroke="none"/><path d="M29 21 L20 24 L20 34"/><path d="M35 21 L44 24 L44 34"/><path d="M12 34 H24 M40 34 H52" stroke-width="3"/><path d="M31 32 L26 46 M31 32 L38 44"/><path d="M14 34 V54 M50 34 V54" stroke-width="2"/>',
+        lunge: head(30,11)+'<path d="M30 16 L29 30"/><path d="M27 20 L18 28"/><path d="M33 20 L42 28"/><circle cx="16" cy="29" r="3.2"/><circle cx="44" cy="29" r="3.2"/><ellipse cx="24" cy="36" rx="3" ry="5" fill="'+hl+'" stroke="none"/><path d="M29 30 L20 34 L21 48"/><path d="M29 30 L40 40 L48 50"/><path d="M14 52 H28 M42 52 H54" stroke-width="2"/>',
+        kettlebell: head(32,12)+'<path d="M32 18 L32 36"/><path d="M29 21 L24 34"/><path d="M35 21 L40 34"/><path d="M26 40 a6 6 0 1 1 12 0 a6 6 0 1 1 -12 0" fill="'+hl+'" stroke="none"/><path d="M28 36 q4 -5 8 0" stroke-width="2.2"/><path d="M32 36 L26 56 M32 36 L38 56"/><path d="M20 58 H44" stroke-width="2"/>',
+        generic: head(32,13)+'<path d="M32 18 L32 38"/><path d="M32 22 L20 32 M32 22 L44 32"/><path d="M32 38 L26 56 M32 38 L38 56"/>'
+      };
+      return '<g fill="none" stroke="'+ink+'" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">' + (F[kind]||F.generic) + '</g>';
+    }
+    function thumb(name, group, size){
+      size = size||48;
+      return '<span class="thumb" style="width:'+size+'px;height:'+size+'px" aria-hidden="true"><svg viewBox="0 0 64 64" width="'+Math.round(size*0.92)+'" height="'+Math.round(size*0.92)+'">'+thumbFigure(thumbKind(name,group))+'</svg></span>';
+    }
+    /* Animated movement demo (looping SVG, GIF-style) per movement kind */
+    function demoAnim(kind){
+      var map = {
+        squat:'<animateTransform attributeName="transform" type="translate" values="0 0;0 3.5;0 0" dur="1.6s" repeatCount="indefinite"/>',
+        legExtension:'<animateTransform attributeName="transform" type="translate" values="0 0;0 2;0 0" dur="1.4s" repeatCount="indefinite"/>',
+        legCurl:'<animateTransform attributeName="transform" type="translate" values="0 0;0 2;0 0" dur="1.4s" repeatCount="indefinite"/>',
+        calf:'<animateTransform attributeName="transform" type="translate" values="0 0;0 -2.5;0 0" dur="1.2s" repeatCount="indefinite"/>',
+        bench:'<animateTransform attributeName="transform" type="translate" values="0 0;0 -2.5;0 0" dur="1.5s" repeatCount="indefinite"/>',
+        overhead:'<animateTransform attributeName="transform" type="translate" values="0 1.5;0 -2;0 1.5" dur="1.5s" repeatCount="indefinite"/>',
+        curl:'<animateTransform attributeName="transform" type="rotate" values="0 32 32;-4 32 32;0 32 32" dur="1.3s" repeatCount="indefinite"/>',
+        tricep:'<animateTransform attributeName="transform" type="rotate" values="0 32 32;4 32 32;0 32 32" dur="1.3s" repeatCount="indefinite"/>',
+        raise:'<animateTransform attributeName="transform" type="translate" values="0 0;0 -2;0 0" dur="1.4s" repeatCount="indefinite"/>',
+        pull:'<animateTransform attributeName="transform" type="translate" values="0 -2;0 2;0 -2" dur="1.6s" repeatCount="indefinite"/>',
+        deadlift:'<animateTransform attributeName="transform" type="rotate" values="-3 32 40;3 32 40;-3 32 40" dur="1.7s" repeatCount="indefinite"/>',
+        bentRow:'<animateTransform attributeName="transform" type="rotate" values="-2 32 36;3 32 36;-2 32 36" dur="1.5s" repeatCount="indefinite"/>',
+        row:'<animateTransform attributeName="transform" type="translate" values="0 0;-2 0;0 0" dur="1.4s" repeatCount="indefinite"/>',
+        kettlebell:'<animateTransform attributeName="transform" type="rotate" values="-4 32 36;5 32 36;-4 32 36" dur="1.1s" repeatCount="indefinite"/>',
+        lunge:'<animateTransform attributeName="transform" type="translate" values="0 0;0 3;0 0" dur="1.5s" repeatCount="indefinite"/>',
+        dip:'<animateTransform attributeName="transform" type="translate" values="0 -1.5;0 2.5;0 -1.5" dur="1.5s" repeatCount="indefinite"/>',
+        fly:'<animateTransform attributeName="transform" type="translate" values="0 0;0 -1.8;0 0" dur="1.5s" repeatCount="indefinite"/>',
+        core:'<animateTransform attributeName="transform" type="rotate" values="0 32 36;-3 32 36;0 32 36" dur="1.6s" repeatCount="indefinite"/>'
+      };
+      return map[kind] || '<animateTransform attributeName="transform" type="translate" values="0 0;0 -2;0 0" dur="1.5s" repeatCount="indefinite"/>';
+    }
+    function demoFigure(name, group){
+      var kind = thumbKind(name, group);
+      return '<svg viewBox="0 0 64 64" role="img" aria-label="Animated demo of '+esc(name)+'"><g>'+demoAnim(kind)+thumbFigure(kind)+'</g></svg>';
+    }
+</script>
+<script>
+"use strict";
+/* ---------------- history queries ---------------- */
+function sortedWorkouts(){ return S.workouts.slice().sort(function(a,b){ return b.startedAt < a.startedAt ? -1 : 1; }); }
+function prevFor(exerciseId){
+  var ws = sortedWorkouts();
+  for(var i=0;i<ws.length;i++){
+    var we = ws[i].exercises.find(function(e){ return e.exerciseId===exerciseId; });
+    if(we){
+      var sets = we.sets.filter(function(s){ return s.completed; });
+      if(sets.length) return { title: ws[i].title, date: ws[i].startedAt, sets: sets };
+    }
+  }
+  return null;
+}
+function bestsFor(exerciseId){
+  var bw=null, b1=null;
+  S.workouts.forEach(function(w){ w.exercises.forEach(function(we){
+    if(we.exerciseId!==exerciseId) return;
+    we.sets.forEach(function(s){
+      if(!s.completed || s.setType==="warmup" || s.weightKg==null) return;
+      if(bw==null || s.weightKg>bw) bw=s.weightKg;
+      var e = est1rm(s.weightKg, s.reps);
+      if(e!=null && (b1==null || e>b1)) b1=e;
+    });
+  }); });
+  return { bestWeight:bw, best1rm:b1 };
+}
+function exerciseHistory(exerciseId){
+  var out=[];
+  sortedWorkouts().forEach(function(w){
+    var we = w.exercises.find(function(e){ return e.exerciseId===exerciseId; });
+    if(we) out.push({ workout:w, we:we });
+  });
+  return out;
+}
+function lineChart(values, labels){
+  if(values.length<2) return "";
+  var W=340,H=120,P=14, max=Math.max.apply(null,values), min=Math.min.apply(null,values);
+  if(max===min){ max+=1; min-=1; }
+  var pts = values.map(function(v,i){
+    var x = P + i*(W-2*P)/(values.length-1);
+    var y = H-P-6 - (v-min)*(H-2*P-12)/(max-min);
+    return [Math.round(x*10)/10, Math.round(y*10)/10];
+  });
+  var line = pts.map(function(p){ return p[0]+","+p[1]; }).join(" ");
+  var dots = pts.map(function(p){ return '<circle cx="'+p[0]+'" cy="'+p[1]+'" r="3.5" fill="var(--accent)"/>'; }).join("");
+  return '<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Progress chart">'
+    + '<polyline points="'+line+'" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'+dots
+    + '<text x="'+P+'" y="12" font-size="11" fill="var(--muted)">'+fmtNum(max)+' kg</text>'
+    + '<text x="'+P+'" y="'+(H-2)+'" font-size="11" fill="var(--muted)">'+fmtNum(min)+' kg</text>'
+    + '<text x="'+(W-P)+'" y="12" font-size="11" text-anchor="end" fill="var(--muted)">'+esc(labels[labels.length-1]||"")+'</text>'
+    + '<text x="'+(W-P)+'" y="'+(H-2)+'" font-size="11" text-anchor="end" fill="var(--muted)">'+esc(labels[0]||"")+'</text></svg>';
+}
+
+/* ---------------- sheets ---------------- */
+var sheetCb = null;
+function openSheet(html){ var sh=document.getElementById("sheet"); sh.innerHTML=html; sh.classList.add("show"); document.getElementById("scrim").classList.add("show"); }
+function closeSheet(){ document.getElementById("sheet").classList.remove("show"); document.getElementById("scrim").classList.remove("show"); sheetCb=null; }
+document.getElementById("scrim").addEventListener("click", closeSheet);
+
+var pickerState = { q:"", cb:null };
+function openPicker(cb){
+  pickerState = { q:"", cb:cb };
+  openSheet('<h2>Add Exercise</h2><p class="sub">Search the catalogue or create your own below.</p>'
+    + '<input class="search" id="pickerSearch" type="search" placeholder="Search exercises" autocomplete="off" />'
+    + '<div id="pickerList"></div>'
+    + '<button class="btn secondary" onclick="openCustomExercise()">+ Create custom exercise</button>');
+  document.getElementById("pickerSearch").addEventListener("input", function(e){ pickerState.q = e.target.value; renderPickerList(); });
+  renderPickerList();
+  setTimeout(function(){ var i=document.getElementById("pickerSearch"); if(i) i.focus(); }, 80);
+}
+function renderPickerList(){
+  var q = pickerState.q.trim().toLowerCase();
+  var list = allExercises().filter(function(e){ return !q || e.name.toLowerCase().indexOf(q)>=0 || e.muscleGroup.toLowerCase().indexOf(q)>=0; });
+  var el = document.getElementById("pickerList"); if(!el) return;
+  if(!list.length){ el.innerHTML = '<div class="empty">No exercises match.</div>'; return; }
+  el.innerHTML = list.slice(0,60).map(function(e){
+    var hasN = hasExerciseNote(e.id);
+    return '<button class="rowitem" onclick="pickExercise(\''+e.id+'\')">'+thumb(e.name,e.muscleGroup,44)
+      + '<span class="grow"><span class="t">'+esc(e.name)+'</span><span class="s" style="display:block">'+esc(e.muscleGroup)+' · '+esc(e.equipment)+'</span>'+(hasN?'<span class="note-preview">📝 '+esc(notePreviewText(e.id))+'</span>':'')+'</span></button>';
+  }).join("");
+}
+function pickExercise(id){ var cb = pickerState.cb; closeSheet(); if(cb) cb(id); }
+function openCustomExercise(){
+  openSheet('<h2>New Exercise</h2><p class="sub">Add your own exercise — it saves to your catalogue and you can use it in any routine or workout.</p>'
+    + '<div class="field" style="margin-bottom:10px"><label for="ceName">Name</label><input id="ceName" placeholder="e.g. Smith Machine Squat" /></div>'
+    + '<div class="grid2"><div class="field"><label for="ceMuscle">Muscle group</label><select id="ceMuscle">'
+    + MUSCLES.map(function(m){ return '<option>'+m+'</option>'; }).join("") + '</select></div>'
+    + '<div class="field"><label for="ceEquip">Equipment</label><input id="ceEquip" placeholder="e.g. Machine, Kettlebell, Cable" /></div></div>'
+    + '<div class="field" style="margin-top:10px"><label for="ceNotes">Your notes for this exercise (optional)</label><textarea id="ceNotes" placeholder="Your own notes for this movement…"></textarea></div>'
+    + '<button class="btn" style="margin-top:14px" onclick="saveCustomExercise()">Add exercise</button>');
+  setTimeout(function(){ var i=document.getElementById("ceName"); if(i) i.focus(); }, 80);
+}
+function saveCustomExercise(){
+  var name = document.getElementById("ceName").value.trim();
+  if(!name){ toast("Give the exercise a name"); return; }
+  if(exByName(name)){ toast("That exercise already exists"); return; }
+  var notesEl = document.getElementById("ceNotes");
+  var ex = { id:"x"+uid(), name:name, muscleGroup:document.getElementById("ceMuscle").value, equipment:document.getElementById("ceEquip").value.trim()||"Other", isCustom:true, notes: notesEl ? notesEl.value.trim() : "" };
+  S.customExercises.push(ex); if(!S.exerciseNotes) S.exerciseNotes={}; if(ex.notes) S.exerciseNotes[ex.id]=ex.notes; save();
+  var cb = pickerState.cb; closeSheet();
+  toast("Exercise added: "+name);
+  if(cb) cb(ex.id); else render();
+}
+
+function openRestPicker(current, cb){
+  sheetCb = cb;
+  var opts = REST_PRESETS.map(function(s){
+    return '<button class="'+(s===current?"on":"")+'" onclick="pickRest('+s+')">'+(s===0?"Off":fmtRest(s))+'</button>';
+  }).join("");
+  openSheet('<h2>Rest Timer</h2><p class="sub">Starts automatically when you check a set.</p>'
+    + '<div class="restopts">'+opts+'</div>'
+    + '<div class="grid2"><div class="field"><label for="rcMin">Minutes</label><input id="rcMin" type="number" min="0" max="30" inputmode="numeric" placeholder="1" /></div>'
+    + '<div class="field"><label for="rcSec">Seconds</label><input id="rcSec" type="number" min="0" max="59" inputmode="numeric" placeholder="30" /></div></div>'
+    + '<button class="btn" style="margin-top:14px" onclick="pickRestCustom()">Use custom time</button>'
+    + '<label class="switchrow"><span class="grow">Sound when rest ends</span><input type="checkbox" '+(S.prefs.sound?"checked":"")+' onchange="setPref(\'sound\',this.checked)" /></label>'
+    + '<label class="switchrow"><span class="grow">Vibrate when rest ends</span><input type="checkbox" '+(S.prefs.vibrate?"checked":"")+' onchange="setPref(\'vibrate\',this.checked)" /></label>');
+}
+function pickRest(sec){ var cb = sheetCb; closeSheet(); if(cb) cb(sec); }
+function pickRestCustom(){
+  var m = parseInt(document.getElementById("rcMin").value||"0",10)||0;
+  var s = parseInt(document.getElementById("rcSec").value||"0",10)||0;
+  pickRest(Math.max(0, Math.min(1800, m*60+s)));
+}
+function confirmSheet(title, body, okLabel, cb){
+  sheetCb = cb;
+  openSheet('<h2>'+esc(title)+'</h2><p class="sub">'+esc(body)+'</p>'
+    + '<button class="btn danger" onclick="confirmYes()">'+esc(okLabel)+'</button>'
+    + '<button class="btn ghost" onclick="closeSheet()">Cancel</button>');
+}
+function confirmYes(){ var cb = sheetCb; closeSheet(); if(cb) cb(); }
+
+/* ---------------- router ---------------- */
+var route = { name: draft ? "train" : "train" };
+var ui = { exSearch:"", exMuscle:"All", routineDraft:null, exReturn:"exercises" };
+function openExerciseDetail(id, from){ ui.exReturn = from||"exercises"; go("exerciseDetail", id); }
+function go(name, param){ route = { name:name, param:param }; render(); window.scrollTo(0,0); }
+document.querySelectorAll("#tabbar button").forEach(function(b){
+  b.addEventListener("click", function(){
+    var t = b.getAttribute("data-tab");
+    if(t==="train" && draft){ go(draft.mode==="amrap" ? "amrap" : "logger"); return; }
+    go(t);
+  });
+});
+function render(){
+  var app = document.getElementById("app");
+  var tabFor = { train:"train", logger:"train", amrap:"train", summary:"train", routines:"routines", routineEdit:"routines",
+    exercises:"exercises", exerciseDetail:"exercises", history:"history", workoutDetail:"history",
+    measures:"measures", measureEdit:"measures" }[route.name] || "train";
+  document.querySelectorAll("#tabbar button").forEach(function(b){
+    b.classList.toggle("on", b.getAttribute("data-tab")===tabFor);
+    if(b.getAttribute("data-tab")==="train") b.classList.toggle("live", !!draft);
+  });
+  document.querySelectorAll("#tabbar button")[0].classList.add("tabbadge");
+  var html = "";
+  if(route.name==="train") html = vTrain();
+  else if(route.name==="logger") html = vLogger();
+  else if(route.name==="amrap") html = vAmrap();
+  else if(route.name==="summary") html = vSummary();
+  else if(route.name==="routines") html = vRoutines();
+  else if(route.name==="routineEdit") html = vRoutineEdit();
+  else if(route.name==="exercises") html = vExercises();
+  else if(route.name==="exerciseDetail") html = vExerciseDetail();
+  else if(route.name==="history") html = vHistory();
+  else if(route.name==="workoutDetail") html = vWorkoutDetail();
+  else if(route.name==="measures") html = vMeasures();
+  else if(route.name==="measureEdit") html = vMeasureEdit();
+  app.innerHTML = html;
+  if(route.name==="logger") afterLoggerRender();
+  if(route.name==="amrap") afterAmrapRender(); else stopAmrapTick();
+  if(route.name==="exercises"){ var si=document.getElementById("exSearch"); if(si){ si.value=ui.exSearch; } }
+}
+
+/* ---------------- Train ---------------- */
+function defaultTitle(){
+  var h = new Date().getHours();
+  var part = h<11 ? "Morning" : h<17 ? "Afternoon" : "Evening";
+  return part + " Workout";
+}
+function vTrain(){
+  var h = '<div class="pagehead"><h1>Mooscles</h1><p>Log a workout, follow a routine, beat last time.</p></div>';
+  if(draft && draft.mode==="amrap"){
+    h += '<div class="banner"><b>AMRAP in progress</b>'+esc(draft.title)+' · '+(draft.amrapRounds||0)+' rounds so far'
+      + '<button class="btn" style="margin-top:10px" onclick="go(\'amrap\')">Resume AMRAP</button>'
+      + '<button class="btn ghost" onclick="discardDraft()">Discard</button></div>';
+  } else if(draft){
+    var done=0,total=0;
+    draft.exercises.forEach(function(ex){ ex.sets.forEach(function(s){ total++; if(s.done) done++; }); });
+    h += '<div class="banner"><b>Workout in progress</b>'+esc(draft.title)+' · '+done+'/'+total+' sets checked'
+      + '<button class="btn" style="margin-top:10px" onclick="go(\'logger\')">Resume workout</button>'
+      + '<button class="btn ghost" onclick="discardDraft()">Discard</button></div>';
+  } else {
+    h += '<button class="btn" onclick="startEmpty()">+ Start Empty Workout</button>';
+  }
+  h += '<div class="sectionlabel">My routines</div>';
+  if(!S.routines.length){
+    h += '<div class="empty"><b>No routines yet — no routine cap here</b>Build Push, Pull, Legs, Upper, Lower — as many as you run. Start from a template:</div>'
+      + '<div class="chips" style="margin-top:12px">' + TEMPLATES.map(function(t,i){ return '<button class="chip" onclick="addTemplate('+i+')">'+esc(t.name)+'</button>'; }).join("") + '</div>'
+      + '<button class="btn secondary" onclick="newRoutine()">+ Create routine</button>';
+  } else {
+    h += S.routines.map(function(r){ return routineRow(r, true); }).join("");
+    h += '<button class="btn secondary" onclick="newRoutine()">+ New routine</button>';
+  }
+  var recent = sortedWorkouts().slice(0,3);
+  if(recent.length){
+    h += '<div class="sectionlabel">Recent workouts</div>' + recent.map(workoutRow).join("");
+  }
+  h += dataCard();
+  return h;
+}
+function copyTemplateMeta(t, target){
+  ["mode","durationMin","notes","weightGuide","scaling","creditName","creditUrl"].forEach(function(k){ if(t[k]!=null) target[k]=t[k]; });
+  return target;
+}
+function routineNotesHtml(r){
+  if(!r || (!r.notes && !r.weightGuide && !r.scaling && !r.creditUrl)) return "";
+  var h = '<div class="card routine-notes"><h3>'+(r.mode==="amrap" ? "⏱ Timed AMRAP — how it works" : "About this routine")+'</h3>';
+  if(r.notes) h += '<p>'+esc(r.notes)+'</p>';
+  if(r.weightGuide) h += '<p><b>Which bell?</b> '+esc(r.weightGuide)+'</p>';
+  if(r.scaling) h += '<p><b>Scaling.</b> '+esc(r.scaling)+'</p>';
+  if(r.creditUrl) h += '<p class="creditline">Routine inspired by '+esc(r.creditName||"the creator")+'. <a href="'+esc(r.creditUrl)+'" target="_blank" rel="noopener">Watch the original reel ↗</a></p>';
+  return h + '</div>';
+}
+function routineRow(r, withStart){
+  var names = r.exercises.map(function(re){ var e=exById(re.exerciseId); return e?e.name:""; }).filter(Boolean);
+  var sets = r.exercises.reduce(function(a,re){ return a+(re.sets||0); },0);
+  var meta = r.mode==="amrap" ? r.exercises.length+' exercises · '+(r.durationMin||20)+'-min AMRAP · rounds count — tap to open' : r.exercises.length+' exercises · '+sets+' sets — tap to open';
+  return '<div class="rowitem clickable" role="button" tabindex="0" onclick="editRoutine(\''+r.id+'\')" aria-label="Open routine '+esc(r.name)+'"><span class="grow"><span class="t">'+esc(r.name)+(r.mode==="amrap"?'<span class="modebadge">AMRAP '+(r.durationMin||20)+' min</span>':"")+'</span>'
+    + '<span class="s" style="display:block">'+meta+'</span>'
+    + '<span class="s" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(names.join(", "))+'</span></span>'
+    + (withStart ? '<button class="btn small" onclick="event.stopPropagation();startRoutine(\''+r.id+'\')">Start</button>' : '')
+    + '<span class="chev">›</span></div>';
+}
+function workoutRow(w){
+  var vol = workoutVolume(w);
+  var nEx = w.exercises.length;
+  var nSets = w.exercises.reduce(function(a,e){ return a+e.sets.length; },0);
+  var detail = w.amrapRounds!=null ? nEx+' exercises · '+w.amrapRounds+' rounds in '+(w.amrapDurationMin||20)+' min' : nEx+' exercises · '+nSets+' sets · '+fmtVol(vol);
+  return '<button class="rowitem" onclick="go(\'workoutDetail\',\''+w.id+'\')"><span class="grow"><span class="t">'+esc(w.title)+(w.amrapRounds!=null?'<span class="modebadge">AMRAP</span>':"")+'</span>'
+    + '<span class="s" style="display:block">'+fmtDate(w.startedAt)+'</span>'
+    + '<span class="s" style="display:block">'+esc(detail)+'</span></span><span class="chev">›</span></button>';
+}
+function dataCard(){
+  return '<div class="sectionlabel">Your data</div><div class="card"><h3>Stored on this device</h3>'
+    + '<p class="sub" style="margin-bottom:12px">Your workouts live in this browser — no account, nothing uploaded. Back up before switching phones or clearing browser data.</p>'
+    + '<div class="grid2"><button class="btn secondary" onclick="exportBackup()">Export backup</button>'
+    + '<button class="btn secondary" onclick="importBackup()">Import backup</button>'
+    + '<button class="btn secondary" onclick="exportCsv()">Export CSV</button>'
+    + '<button class="btn secondary" onclick="importCsv()">Import CSV</button></div>'
+    + '<p class="sub" style="margin-top:12px">Rest-timer sound and vibration settings live in the rest timer — tap any ⏱ pill during a workout.</p></div>';
+}
+function setPref(k,v){ S.prefs[k]=v; save(); }
+function discardDraft(){
+  confirmSheet("Discard workout?", "This in-progress workout will be deleted. Finished workouts in History are not affected.", "Discard", function(){
+    draft=null; saveDraft(); stopRest(); stopAmrapTick(); go("train"); toast("Workout discarded");
+  });
+}
+
+/* ---------------- Routines ---------------- */
+function vRoutines(){
+  var h = '<div class="pagehead"><h1>Routines</h1><p>'+S.routines.length+' routine'+(S.routines.length===1?"":"s")+' · unlimited routines, no cap.</p></div>';
+  if(!S.routines.length){
+    h += '<div class="empty"><b>No routines yet</b>Create one from scratch, or start from a template:</div>'
+      + '<div class="chips" style="margin-top:12px">' + TEMPLATES.map(function(t,i){ return '<button class="chip" onclick="addTemplate('+i+')">'+esc(t.name)+'</button>'; }).join("") + '</div>';
+  } else {
+    h += S.routines.map(function(r){ return routineRow(r, true); }).join("");
+    h += '<div class="sectionlabel">Add a template — incl. Kettlebell Complex</div><div class="chips">' + TEMPLATES.map(function(t,i){ return '<button class="chip" onclick="addTemplate('+i+')">'+esc(t.name)+'</button>'; }).join("") + '</div>';
+  }
+  h += '<button class="btn" onclick="newRoutine()">+ New Routine</button>';
+  return h;
+}
+function addTemplate(i){
+  var t = TEMPLATES[i];
+  var r = copyTemplateMeta(t, { id:"r"+uid(), name:t.name, exercises: t.exercises.map(function(te){
+    var e = exByName(te[0]);
+    return { exerciseId: e?e.id:"", sets: te[1], reps: te[2], restSec: te[3] };
+  }).filter(function(re){ return re.exerciseId; }) });
+  S.routines.push(r); save(); toast("Routine added: "+t.name); render();
+}
+function newRoutine(){
+  ui.routineDraft = { id:null, name:"", exercises:[] };
+  go("routineEdit");
+}
+function editRoutine(id){
+  var r = S.routines.find(function(x){ return x.id===id; });
+  if(!r) return;
+  ui.routineDraft = JSON.parse(JSON.stringify(r));
+  go("routineEdit");
+}
+function vRoutineEdit(){
+  var rd = ui.routineDraft;
+  if(!rd){ return '<div class="pagehead"><h1>Routine</h1></div><div class="empty">Nothing to edit.</div>'; }
+  var h = '<div class="topbar"><button class="iconbtn" onclick="go(\'routines\')" aria-label="Back">‹</button><h1>'+(rd.id?"Edit Routine":"New Routine")+'</h1></div>';
+  h += '<div class="field" style="margin-bottom:12px"><label for="rdName">Routine name</label><input id="rdName" value="'+esc(rd.name)+'" placeholder="e.g. Push Day" oninput="ui.routineDraft.name=this.value" /></div>';
+  h += routineNotesHtml(rd);
+  if(rd.mode==="amrap") h += '<p class="note" style="margin:0 0 12px">This is a timed AMRAP: the Reps column below is the reps per round. Sets and Rest do not apply — the clock and the rounds counter run the session.</p>';
+  if(!rd.id && !rd.exercises.length){
+    h += '<div class="sectionlabel">Start from a template</div><div class="chips">'
+      + TEMPLATES.map(function(t,i){ return '<button class="chip" onclick="applyTemplate('+i+')">'+esc(t.name)+'</button>'; }).join("") + '</div>';
+  }
+  h += rd.exercises.map(function(re, idx){
+    var e = exById(re.exerciseId); if(!e) return "";
+    var hasNoteR = hasExerciseNote(e.id);
+    return '<div class="excard"><div class="exhead"><button class="taphead" onclick="openExerciseDetail(\''+e.id+'\',\'routineEdit\')" aria-label="Open '+esc(e.name)+'">'+thumb(e.name,e.muscleGroup,44)
+      + '<span class="grow"><span class="t">'+esc(e.name)+' ›</span><span class="s" style="display:block">'+esc(e.muscleGroup)+' · '+esc(e.equipment)+' · tap for demo, graph & notes</span>'+(hasNoteR?'<span class="note-preview">📝 '+esc(notePreviewText(e.id))+'</span>':'')+'</span></button>'
+      + '<button class="iconbtn" aria-label="Move up" onclick="moveRoutineRow('+idx+',-1)">↑</button>'
+      + '<button class="iconbtn" aria-label="Move down" onclick="moveRoutineRow('+idx+',1)">↓</button>'
+      + '<button class="iconbtn" aria-label="Remove" onclick="removeRoutineRow('+idx+')">✕</button></div>'
+      + '<div class="grid2" style="grid-template-columns:1fr 1fr 1fr;gap:8px">'
+      + '<div class="field"><label>Sets</label><input type="number" min="1" max="20" inputmode="numeric" value="'+re.sets+'" oninput="ui.routineDraft.exercises['+idx+'].sets=parseInt(this.value||\'0\',10)" /></div>'
+      + '<div class="field"><label>Reps</label><input value="'+esc(re.reps)+'" placeholder="8-12" oninput="ui.routineDraft.exercises['+idx+'].reps=this.value" /></div>'
+      + '<div class="field"><label>Rest</label><button class="restpill" style="width:100%;min-height:48px;border-radius:10px" onclick="editRoutineRest('+idx+')">'+fmtRest(re.restSec)+'</button></div>'
+      + '</div></div>';
+  }).join("");
+  h += '<button class="btn secondary" onclick="addToRoutine()">+ Add Exercise</button>';
+  h += '<button class="btn" style="margin-top:12px" onclick="saveRoutine()">Save Routine</button>';
+  if(rd.id) h += '<button class="btn danger" style="margin-top:10px" onclick="deleteRoutine()">Delete Routine</button>';
+  return h;
+}
+function applyTemplate(i){
+  var t = TEMPLATES[i]; var rd = ui.routineDraft;
+  rd.name = rd.name || t.name;
+  copyTemplateMeta(t, rd);
+  rd.exercises = t.exercises.map(function(te){ var e=exByName(te[0]); return { exerciseId:e?e.id:"", sets:te[1], reps:te[2], restSec:te[3] }; }).filter(function(re){ return re.exerciseId; });
+  render();
+}
+function addToRoutine(){ openPicker(function(id){ ui.routineDraft.exercises.push({ exerciseId:id, sets:3, reps:"8-12", restSec:90 }); render(); }); }
+function moveRoutineRow(idx, dir){
+  var a = ui.routineDraft.exercises, j = idx+dir;
+  if(j<0 || j>=a.length) return;
+  var tmp=a[idx]; a[idx]=a[j]; a[j]=tmp; render();
+}
+function removeRoutineRow(idx){ ui.routineDraft.exercises.splice(idx,1); render(); }
+function editRoutineRest(idx){ openRestPicker(ui.routineDraft.exercises[idx].restSec, function(sec){ ui.routineDraft.exercises[idx].restSec = sec; render(); }); }
+function saveRoutine(){
+  var rd = ui.routineDraft;
+  rd.name = (document.getElementById("rdName").value||"").trim();
+  if(!rd.name){ toast("Give the routine a name"); return; }
+  if(!rd.exercises.length){ toast("Add at least one exercise"); return; }
+  rd.exercises = rd.exercises.filter(function(re){ return re.exerciseId && re.sets>0; });
+  if(rd.id){
+    var i = S.routines.findIndex(function(r){ return r.id===rd.id; });
+    if(i>=0) S.routines[i] = rd;
+  } else { rd.id = "r"+uid(); S.routines.push(rd); }
+  save(); ui.routineDraft=null; toast("Routine saved"); go("routines");
+}
+function deleteRoutine(){
+  var rd = ui.routineDraft;
+  confirmSheet("Delete routine?", '"'+rd.name+'" will be removed. Your workout history stays.', "Delete", function(){
+    S.routines = S.routines.filter(function(r){ return r.id!==rd.id; });
+    save(); ui.routineDraft=null; go("routines"); toast("Routine deleted");
+  });
+}
+
+/* ---------------- Exercises ---------------- */
+function vExercises(){
+  var q = ui.exSearch.trim().toLowerCase();
+  var list = allExercises().filter(function(e){
+    if(ui.exMuscle!=="All" && e.muscleGroup!==ui.exMuscle) return false;
+    return !q || e.name.toLowerCase().indexOf(q)>=0;
+  });
+  var h = '<div class="pagehead"><h1>Exercises</h1><p>'+allExercises().length+' exercises in your catalogue. Tap any exercise for its demo, progression graph and your notes.</p></div>';
+  h += '<button class="btn" style="margin-bottom:12px" onclick="openCustomExerciseStandalone()">+ Add New Exercise</button>';
+  h += '<input class="search" id="exSearch" type="search" placeholder="Search exercises" autocomplete="off" oninput="ui.exSearch=this.value;renderExerciseList()" />';
+  var muscles = ["All"].concat(MUSCLES.filter(function(m){ return allExercises().some(function(e){ return e.muscleGroup===m; }); }));
+  h += '<div class="chips">' + muscles.map(function(m){ return '<button class="chip'+(ui.exMuscle===m?" on":"")+'" onclick="ui.exMuscle=\''+m+'\';render()">'+m+'</button>'; }).join("") + '</div>';
+  h += '<div id="exList">' + exerciseListHtml(list) + '</div>';
+  h += '<button class="btn secondary" onclick="openCustomExerciseStandalone()">+ Add New Exercise</button>';
+  return h;
+}
+function exerciseListHtml(list){
+  if(!list.length) return '<div class="empty">No exercises match.</div>';
+  var groups = {};
+  list.forEach(function(e){ (groups[e.muscleGroup] = groups[e.muscleGroup]||[]).push(e); });
+  return Object.keys(groups).sort().map(function(g){
+    return '<div class="sectionlabel">'+esc(g)+'</div>' + groups[g].map(function(e){
+      var b = bestsFor(e.id);
+      var sub = e.muscleGroup+' · '+e.equipment + (b.bestWeight!=null ? ' · Best '+fmtNum(b.bestWeight)+' kg' : '');
+      var hasN = hasExerciseNote(e.id);
+      return '<button class="rowitem" onclick="openExerciseDetail(\''+e.id+'\',\'exercises\')">'+thumb(e.name,e.muscleGroup,48)
+        + '<span class="grow"><span class="t">'+esc(e.name)+(e.isCustom?' <span class="prtag" style="color:var(--accent);background:var(--accent-soft)">CUSTOM</span>':"")+(hasN?' <span class="note-ind">📝 Notes</span>':"")+'</span>'
+        + '<span class="s" style="display:block">'+esc(sub)+'</span>'+(hasN?'<span class="note-preview">📝 '+esc(notePreviewText(e.id))+'</span>':'<span class="note-preview" style="opacity:.75">Tap to add notes</span>')+'</span><span class="chev">›</span></button>';
+    }).join("");
+  }).join("");
+}
+function renderExerciseList(){
+  var el = document.getElementById("exList"); if(!el) return;
+  var q = ui.exSearch.trim().toLowerCase();
+  var list = allExercises().filter(function(e){
+    if(ui.exMuscle!=="All" && e.muscleGroup!==ui.exMuscle) return false;
+    return !q || e.name.toLowerCase().indexOf(q)>=0;
+  });
+  el.innerHTML = exerciseListHtml(list);
+  var si = document.getElementById("exSearch");
+  if(si && document.activeElement!==si){ si.value = ui.exSearch; }
+}
+function openCustomExerciseStandalone(){ pickerState = { q:"", cb:null }; openCustomExercise(); }
+function vExerciseDetail(){
+  var e = exById(route.param);
+  if(!e) return '<div class="topbar"><button class="iconbtn" onclick="go(\''+(ui.exReturn||"exercises")+'\')" aria-label="Back">‹</button><h1>Exercise</h1></div><div class="empty">Exercise not found in the catalogue. It may have been a custom exercise from an older workout.</div>';
+  var b = bestsFor(e.id);
+  var hist = exerciseHistory(e.id);
+  var totalSets = 0; hist.forEach(function(hx){ totalSets += hx.we.sets.filter(function(s){ return s.completed; }).length; });
+  var backTo = ui.exReturn||"exercises";
+  var h = '<div class="topbar"><button class="iconbtn" onclick="go(\''+backTo+'\')" aria-label="Back">‹</button><h1>'+esc(e.name)+'</h1></div>';
+  h += '<div class="demo-stage">'+demoFigure(e.name, e.muscleGroup)+'<div class="demo-cap">▶ Looping movement demo · '+esc(e.muscleGroup)+' · '+esc(e.equipment)+'</div></div>';
+  var myNote = getExerciseNotes(e.id);
+  var myNoteHtml = myNote ? esc(myNote).replace(/\n/g,'<br>') : '';
+  h += '<div class="sectionlabel">Your notes</div>';
+  if(myNote){
+    h += '<div class="card"><div style="font-size:15px;line-height:1.6;white-space:pre-wrap">'+myNoteHtml+'</div><p class="exnote-meta">Saved for '+esc(e.name)+' only — stays on this device and is included in your JSON backup.</p></div>';
+    h += '<button class="btn secondary" onclick="openExerciseNoteEditor(\''+e.id+'\')">✏️ Edit notes</button>';
+  } else {
+    h += '<div class="card"><p class="sub" style="margin:0">No notes yet for this exercise. Add your own cues, reminders, weights or how it felt — they will be here every time you open this exercise.</p></div>';
+    h += '<button class="btn" onclick="openExerciseNoteEditor(\''+e.id+'\')">📝 Add note</button>';
+  }
+  h += '<div class="statgrid"><div class="stat"><div class="v">'+(b.bestWeight!=null?fmtNum(b.bestWeight):"–")+'</div><div class="l">Best weight (kg)</div></div>'
+    + '<div class="stat"><div class="v">'+(b.best1rm!=null?fmtNum(Math.round(b.best1rm)):"–")+'</div><div class="l">Est. 1RM (kg)</div></div>'
+    + '<div class="stat"><div class="v">'+totalSets+'</div><div class="l">Sets logged</div></div></div>';
+  var chartPts = hist.slice().reverse().map(function(hx){
+    var top = null, top1 = null;
+    hx.we.sets.forEach(function(s){ if(s.completed && s.weightKg!=null && (top==null || s.weightKg>top)) top=s.weightKg; var e1=est1rm(s.weightKg,s.reps); if(s.completed && e1!=null && (top1==null || e1>top1)) top1=e1; });
+    return { v: top, v1: top1, d: hx.workout.startedAt };
+  }).filter(function(p){ return p.v!=null; });
+  h += '<div class="sectionlabel">Your progression</div>';
+  if(chartPts.length>=2){
+    var firstV = chartPts[0].v, lastV = chartPts[chartPts.length-1].v, delta = Math.round((lastV-firstV)*100)/100;
+    h += '<div class="card"><h3>Top weight — line graph</h3><p class="sub" style="margin-bottom:6px">From '+fmtNum(firstV)+' kg to '+fmtNum(lastV)+' kg <span class="prog-delta">('+(delta>0?"+":"")+fmtNum(delta)+' kg)</span> across '+chartPts.length+' sessions</p>' + lineChart(chartPts.map(function(p){ return p.v; }), chartPts.map(function(p){ return fmtDateShort(p.d); })) + '</div>';
+    var pts1 = chartPts.filter(function(p){ return p.v1!=null; });
+    if(pts1.length>=2) h += '<div class="card"><h3>Estimated 1RM</h3>' + lineChart(pts1.map(function(p){ return Math.round(p.v1); }), pts1.map(function(p){ return fmtDateShort(p.d); })) + '</div>';
+  } else if(chartPts.length===1){
+    h += '<div class="card"><h3>Top weight — line graph</h3><div class="single-dot"><span class="dot"></span><span><b>'+fmtNum(chartPts[0].v)+' kg</b> on '+fmtDate(chartPts[0].d)+'<br><span class="sub">Log this exercise in one more workout and your progression line will draw itself here.</span></span></div></div>';
+  } else {
+    h += '<div class="empty"><b>No progression yet</b>Log '+esc(e.name)+' in a workout and your line graph will appear here.</div>';
+  }
+  h += '<div class="sectionlabel">History</div>';
+  if(!hist.length) h += '<div class="empty">Not logged yet. It will show here after your first workout.</div>';
+  h += hist.slice(0,12).map(function(hx){
+    var sets = hx.we.sets.filter(function(s){ return s.completed; });
+    var txt = sets.map(function(s){ return fmtNum(s.weightKg)+"×"+fmtNum(s.reps); }).join("  ·  ");
+    return '<button class="rowitem" onclick="go(\'workoutDetail\',\''+hx.workout.id+'\')"><span class="grow"><span class="t">'+esc(hx.workout.title)+'</span>'
+      + '<span class="s" style="display:block">'+fmtDate(hx.workout.startedAt)+'</span><span class="s" style="display:block">'+esc(txt)+'</span></span><span class="chev">›</span></button>';
+  }).join("");
+  if(e.isCustom) h += '<button class="btn danger" onclick="deleteCustomExercise(\''+e.id+'\')">Delete custom exercise</button>';
+  return h;
+}
+function openExerciseNoteEditor(id){
+  var e = exById(id); if(!e) return;
+  var cur = getExerciseNotes(id);
+  openSheet('<h2>'+(cur?'Edit notes':'Add note')+'</h2><p class="sub">Notes for '+esc(e.name)+' — only you see these. They save with this exercise and are included in your backup.</p>'
+    + '<div class="field"><label for="exNoteEdit">Your notes</label><textarea id="exNoteEdit" class="exnote-area" placeholder="e.g. Form cues, what to focus on, grip / setup, weight to use, how it felt last time…">'+esc(cur)+'</textarea></div>'
+    + '<button class="btn" style="margin-top:14px" onclick="saveExerciseNoteFromSheet(\''+id+'\')">Save notes</button>'
+    + (cur ? '<button class="btn danger" style="margin-top:10px" onclick="clearExerciseNote(\''+id+'\')">Clear notes</button>' : '')
+    + '<button class="btn ghost" onclick="closeSheet()">Cancel</button>');
+  setTimeout(function(){ var i=document.getElementById("exNoteEdit"); if(i) i.focus(); }, 80);
+}
+function saveExerciseNoteFromSheet(id){
+  var el = document.getElementById("exNoteEdit");
+  var v = el ? el.value : "";
+  setExerciseNotes(id, v);
+  closeSheet();
+  toast(v.trim() ? "Notes saved" : "Notes cleared");
+  render();
+}
+function clearExerciseNote(id){
+  setExerciseNotes(id, "");
+  closeSheet();
+  toast("Notes cleared");
+  render();
+}
+function deleteCustomExercise(id){
+  confirmSheet("Delete exercise?", "It will be removed from your catalogue. Past workouts keep their logged sets.", "Delete", function(){
+    S.customExercises = S.customExercises.filter(function(x){ return x.id!==id; }); if(S.exerciseNotes) delete S.exerciseNotes[id];
+    save(); go("exercises"); toast("Exercise deleted");
+  });
+}
+</script>
+<script>
+"use strict";
+/* ---------------- workout logger ---------------- */
+var SET_TYPES = ["normal","warmup","dropset","failure"];
+var SET_TYPE_SHORT = { normal:"", warmup:"W", dropset:"D", failure:"F" };
+var tickTimer = null;
+
+function newSet(prefill){
+  return { setType:"normal", weight: prefill && prefill.weightKg!=null ? prefill.weightKg : null,
+    reps: prefill && prefill.reps!=null ? prefill.reps : null, done:false };
+}
+function draftExercise(ex, setCount, targetReps, restSec){
+  var prev = prevFor(ex.id);
+  var bests = bestsFor(ex.id);
+  var sets = [];
+  var n = Math.max(1, setCount||3);
+  for(var i=0;i<n;i++){
+    var p = prev && prev.sets[i] ? prev.sets[i] : (prev && prev.sets.length ? prev.sets[prev.sets.length-1] : null);
+    sets.push(newSet(p));
+  }
+  return { exerciseId: ex.id, name: ex.name, muscleGroup: ex.muscleGroup, equipment: ex.equipment,
+    restSec: restSec!=null ? restSec : 90, targetReps: targetReps||"",
+    prevSets: prev ? prev.sets : null, prevDate: prev ? prev.date : null,
+    bestWeight: bests.bestWeight, best1rm: bests.best1rm, sets: sets };
+}
+function startEmpty(){
+  if(draft){ go("logger"); return; }
+  draft = { title: defaultTitle(), routineId:null, startedAt: new Date().toISOString(), exercises: [] };
+  saveDraft(); go("logger");
+}
+function startRoutine(id){
+  if(draft){
+    confirmSheet("Workout already in progress", "Starting this routine will discard the workout you have open.", "Discard & start", function(){
+      draft=null; saveDraft(); stopRest(); doStartRoutine(id);
+    });
+    return;
+  }
+  doStartRoutine(id);
+}
+function doStartRoutine(id){
+  var r = S.routines.find(function(x){ return x.id===id; });
+  if(!r) return;
+  if(r.mode==="amrap"){
+    var durMin = r.durationMin||20;
+    draft = { title: r.name, routineId: r.id, startedAt: new Date().toISOString(), mode:"amrap",
+      durationMin: durMin, notes: r.notes||"", weightGuide: r.weightGuide||"", scaling: r.scaling||"",
+      creditName: r.creditName||"", creditUrl: r.creditUrl||"",
+      amrapDurationSec: durMin*60, amrapRemainingSec: durMin*60, amrapEndsAt: null, amrapState:"ready",
+      amrapRounds: 0, amrapWeightKg: null,
+      exercises: r.exercises.map(function(re){
+        var e = exById(re.exerciseId); if(!e) return null;
+        var repsInt = parseInt(re.reps,10);
+        return { exerciseId: e.id, name: e.name, muscleGroup: e.muscleGroup, equipment: e.equipment,
+          targetReps: String(re.reps), repsPerRound: isNaN(repsInt)?null:repsInt, ticked:false, sets: [], restSec: 0 };
+      }).filter(Boolean) };
+    saveDraft(); go("amrap");
+    return;
+  }
+  draft = { title: r.name, routineId: r.id, startedAt: new Date().toISOString(),
+    exercises: r.exercises.map(function(re){
+      var e = exById(re.exerciseId); if(!e) return null;
+      return draftExercise(e, re.sets, re.reps, re.restSec);
+    }).filter(Boolean) };
+  saveDraft(); go("logger");
+}
+/* ---------------- AMRAP session ---------------- */
+var amrapTimer = null;
+function amrapRemaining(){
+  if(!draft || draft.mode!=="amrap") return 0;
+  if(draft.amrapState==="running" && draft.amrapEndsAt) return Math.max(0,(draft.amrapEndsAt - Date.now())/1000);
+  return draft.amrapRemainingSec||0;
+}
+function vAmrap(){
+  if(!draft || draft.mode!=="amrap") return '<div class="pagehead"><h1>No AMRAP open</h1></div><div class="empty">Start one from a routine marked AMRAP.</div><button class="btn" onclick="go(\'train\')">Back to Train</button>';
+  var remain = amrapRemaining();
+  var total = draft.amrapDurationSec||1200;
+  var pct = total ? Math.round(remain/total*100) : 0;
+  var stateLabel = { ready:"Ready when you are", running:"Clock running — keep moving", paused:"Paused", done:"Time! Pencils down" }[draft.amrapState] || "";
+  var h = '<div class="loghead"><input class="logtitle" id="draftTitle" value="'+esc(draft.title)+'" aria-label="Workout title" oninput="draft.title=this.value;saveDraft()" />'
+    + '<div class="logmeta"><span class="modebadge">AMRAP '+(draft.durationMin||20)+' min</span><span>'+esc(stateLabel)+'</span>'
+    + '<span style="margin-left:auto"></span><button style="color:var(--danger);font-weight:700;min-height:36px" onclick="discardDraft()">Discard</button></div></div>';
+  h += routineNotesHtml(draft);
+  h += '<div class="card"><div class="amrap-clock'+(draft.amrapState==="done"?" done":"")+'" id="amrapTime">'+fmtClock(remain)+'</div>'
+    + '<div class="progress"><i id="amrapProg" style="width:'+pct+'%"></i></div>'
+    + '<div style="display:flex;gap:8px;margin-top:12px">'
+    + (draft.amrapState==="running"
+        ? '<button class="btn secondary" onclick="amrapPause()">⏸ Pause</button>'
+        : '<button class="btn" onclick="amrapStart()">'+(draft.amrapState==="done"?"↺ Restart clock":"▶ Start clock")+'</button>')
+    + (draft.amrapState==="paused" ? '<button class="btn secondary" onclick="amrapResetClock()">Reset</button>' : '')
+    + '</div>'
+    + '<div class="sectionlabel" style="text-align:center;margin-bottom:0">Rounds completed</div>'
+    + '<div class="roundcount"><button onclick="amrapRoundsDelta(-1)" aria-label="One fewer round">−</button><span class="n" id="amrapRounds">'+(draft.amrapRounds||0)+'</span><button onclick="amrapRoundsDelta(1)" aria-label="One more round">+</button></div>'
+    + '<p class="note" style="text-align:center;margin:0">Tick every move below as you finish it — ticking the last one banks the round for you.</p></div>';
+  h += '<div class="card"><h3>This round</h3>' + draft.exercises.map(function(ex, ei){
+    var hasNoteA = hasExerciseNote(ex.exerciseId);
+    return '<div class="amrap-ex'+(ex.ticked?" tickdone":"")+'"><button class="taphead" onclick="openExerciseDetail(\''+ex.exerciseId+'\',\'amrap\')" aria-label="Open '+esc(ex.name)+'">'+thumb(ex.name,ex.muscleGroup,44)
+      + '<span class="grow"><span class="t">'+esc(ex.name)+' ›</span><span class="s" style="display:block">'+esc(ex.muscleGroup)+' · tap for demo, graph & notes</span>'+(hasNoteA?'<span class="note-preview">📝 '+esc(notePreviewText(ex.exerciseId))+'</span>':'')+'</span></button>'
+      + '<span class="reps">× '+esc(ex.targetReps)+'</span>'
+      + '<button class="tick" onclick="amrapTick('+ei+')" aria-label="Tick '+esc(ex.name)+' done this round">✓</button></div>';
+  }).join("") + '</div>';
+  h += '<div class="card"><div class="field"><label for="amrapWeight">Kettlebell weight used (kg) — one bell for everything</label>'
+    + '<input id="amrapWeight" type="number" min="0" step="0.5" inputmode="decimal" placeholder="e.g. 20" value="'+(draft.amrapWeightKg!=null?draft.amrapWeightKg:"")+'" oninput="draft.amrapWeightKg=this.value===\'\'?null:parseFloat(this.value);saveDraft()" /></div></div>';
+  h += '<button class="btn" onclick="finishAmrap()">Finish & log '+(draft.amrapRounds||0)+' round'+((draft.amrapRounds||0)===1?"":"s")+'</button>';
+  h += '<p class="note" style="text-align:center;margin-top:10px">Finishing saves one set per exercise per round, at the bell weight above, so your history stays complete.</p>';
+  return h;
+}
+function afterAmrapRender(){
+  var ti = document.getElementById("draftTitle");
+  if(ti && draft) ti.value = draft.title;
+  stopAmrapTick();
+  if(draft && draft.mode==="amrap" && draft.amrapState==="running"){
+    amrapTimer = setInterval(tickAmrap, 250);
+    tickAmrap();
+  }
+}
+function stopAmrapTick(){ if(amrapTimer){ clearInterval(amrapTimer); amrapTimer = null; } }
+function tickAmrap(){
+  if(!draft || draft.mode!=="amrap" || draft.amrapState!=="running"){ stopAmrapTick(); return; }
+  var remain = amrapRemaining();
+  var el = document.getElementById("amrapTime");
+  if(el) el.textContent = fmtClock(remain);
+  var pr = document.getElementById("amrapProg");
+  if(pr && draft.amrapDurationSec) pr.style.width = (remain/draft.amrapDurationSec*100) + "%";
+  if(remain<=0){
+    draft.amrapState = "done"; draft.amrapRemainingSec = 0; draft.amrapEndsAt = null;
+    saveDraft(); stopAmrapTick();
+    toast("⏰ Time! " + (draft.amrapRounds||0) + " rounds — log it below", 3600);
+    chime([880,880,1318.5]); buzz([150,60,150]);
+    render();
+  }
+}
+function amrapStart(){
+  if(!draft || draft.mode!=="amrap") return;
+  if(draft.amrapState==="done" || amrapRemaining()<=0) draft.amrapRemainingSec = draft.amrapDurationSec;
+  draft.amrapEndsAt = Date.now() + amrapRemaining()*1000;
+  draft.amrapState = "running";
+  saveDraft(); render();
+}
+function amrapPause(){
+  if(!draft || draft.mode!=="amrap") return;
+  draft.amrapRemainingSec = amrapRemaining();
+  draft.amrapEndsAt = null; draft.amrapState = "paused";
+  saveDraft(); render();
+}
+function amrapResetClock(){
+  if(!draft || draft.mode!=="amrap") return;
+  draft.amrapRemainingSec = draft.amrapDurationSec; draft.amrapEndsAt = null; draft.amrapState = "ready";
+  saveDraft(); render();
+}
+function amrapRoundsDelta(d){
+  if(!draft || draft.mode!=="amrap") return;
+  draft.amrapRounds = Math.max(0, (draft.amrapRounds||0) + d);
+  saveDraft();
+  var el = document.getElementById("amrapRounds");
+  if(el) el.textContent = draft.amrapRounds; else render();
+}
+function amrapTick(ei){
+  if(!draft || draft.mode!=="amrap") return;
+  var ex = draft.exercises[ei]; if(!ex) return;
+  ex.ticked = !ex.ticked;
+  buzz(25);
+  if(draft.exercises.length && draft.exercises.every(function(x){ return x.ticked; })){
+    draft.amrapRounds = (draft.amrapRounds||0) + 1;
+    draft.exercises.forEach(function(x){ x.ticked = false; });
+    saveDraft(); render();
+    toast("🎉 Round " + draft.amrapRounds + " banked — go again!");
+    return;
+  }
+  saveDraft(); render();
+}
+function finishAmrap(){
+  if(!draft || draft.mode!=="amrap") return;
+  var rounds = draft.amrapRounds||0;
+  var total = draft.amrapDurationSec||1200;
+  var elapsed = Math.round(total - amrapRemaining());
+  if(draft.amrapState==="ready") elapsed = Math.max(1, Math.round((Date.now() - new Date(draft.startedAt).getTime())/1000));
+  elapsed = Math.max(1, Math.min(total, elapsed || 1));
+  var wKg = draft.amrapWeightKg;
+  var kept = draft.exercises.map(function(ex){
+    var sets = [];
+    for(var i=0;i<rounds;i++) sets.push({ setType:"normal", weightKg: (wKg!=null && !isNaN(wKg)) ? wKg : null, reps: ex.repsPerRound, completed:true });
+    return { exerciseId: ex.exerciseId, name: ex.name, muscleGroup: ex.muscleGroup, sets: sets };
+  });
+  var now = new Date();
+  var w = { id:"w"+uid(), title: draft.title.trim()||"AMRAP Workout", routineId: draft.routineId,
+    startedAt: draft.startedAt, endedAt: now.toISOString(), durationSec: elapsed,
+    exercises: kept, amrapRounds: rounds, amrapDurationMin: draft.durationMin||20, prCount: 0 };
+  S.workouts.push(w); save();
+  draft = null; saveDraft(); stopAmrapTick(); stopRest();
+  go("summary", w.id);
+}
+function draftCounts(){
+  var done=0,total=0;
+  if(draft) draft.exercises.forEach(function(ex){ ex.sets.forEach(function(s){ total++; if(s.done) done++; }); });
+  return { done:done, total:total };
+}
+function nextSetPos(){
+  if(!draft) return null;
+  for(var i=0;i<draft.exercises.length;i++){
+    for(var j=0;j<draft.exercises[i].sets.length;j++){
+      if(!draft.exercises[i].sets[j].done) return { ex:i, set:j };
+    }
+  }
+  return null;
+}
+function isPR(ex, s){
+  if(s.setType==="warmup" || s.weight==null) return false;
+  if(ex.bestWeight!=null && s.weight > ex.bestWeight) return true;
+  var e1 = est1rm(s.weight, s.reps);
+  if(e1!=null && ex.best1rm!=null && e1 > ex.best1rm + 0.01 && !(ex.bestWeight!=null && s.weight > ex.bestWeight)) return true;
+  return false;
+}
+function vLogger(){
+  if(!draft) return '<div class="pagehead"><h1>No workout open</h1></div><div class="empty">Start one from the Train tab.</div>';
+  var c = draftCounts();
+  var nxt = nextSetPos();
+  var pct = c.total ? Math.round(c.done/c.total*100) : 0;
+  var h = '<div class="loghead">'
+    + '<input class="logtitle" id="draftTitle" value="'+esc(draft.title)+'" aria-label="Workout title" oninput="draft.title=this.value;saveDraft()" />'
+    + '<div class="logmeta"><span>⏱ <span id="elapsed">0:00</span></span><span>'+c.done+'/'+c.total+' sets</span>'
+    + (nxt ? '<span>Next: '+esc(draft.exercises[nxt.ex].name)+'</span>' : '<span class="gold">All sets checked 🎉</span>')
+    + '<span style="margin-left:auto"></span><button style="color:var(--danger);font-weight:700;min-height:36px" onclick="discardDraft()">Discard</button></div>'
+    + '<div class="progress"><i style="width:'+pct+'%"></i></div></div>';
+  if(!draft.exercises.length){
+    h += '<div class="empty"><b>No exercises yet</b>Add your first exercise to get going.</div>';
+  }
+  h += draft.exercises.map(function(ex, ei){
+    var doneN = ex.sets.filter(function(s){ return s.done; }).length;
+    var isNextEx = nxt && nxt.ex===ei;
+    var card = '<div class="excard'+(isNextEx?" next":"")+'"><div class="exhead"><button class="taphead" onclick="openExerciseDetail(\''+ex.exerciseId+'\',\'logger\')" aria-label="Open '+esc(ex.name)+' — demo, graph and notes">'+thumb(ex.name,ex.muscleGroup,48)
+      + '<span class="grow"><span class="t">'+esc(ex.name)+' ›</span>'
+      + '<span class="s" style="display:block">'+esc(ex.muscleGroup)+' · '+doneN+'/'+ex.sets.length+' done · tap for demo, graph & notes'
+      + (ex.bestWeight!=null ? ' · Best '+fmtNum(ex.bestWeight)+' kg' : '') + '</span>'+(hasExerciseNote(ex.exerciseId)?'<span class="note-preview">📝 '+esc(notePreviewText(ex.exerciseId))+'</span>':'')+'</span></button>'
+      + '<button class="restpill" onclick="editDraftRest('+ei+')" aria-label="Rest timer for '+esc(ex.name)+'">⏱ '+fmtRest(ex.restSec)+'</button>'
+      + '<button class="iconbtn" aria-label="Remove '+esc(ex.name)+'" onclick="removeDraftExercise('+ei+')">✕</button></div>';
+    card += '<div class="setgrid head"><span style="text-align:center">Set</span><span style="text-align:center">Previous</span><span style="text-align:center">kg</span><span style="text-align:center">Reps</span><span></span><span></span></div>';
+    card += ex.sets.map(function(s, si){
+      var prev = ex.prevSets && ex.prevSets[si] ? ex.prevSets[si] : null;
+      var pr = s.done && isPR(ex, s);
+      var isNext = nxt && nxt.ex===ei && nxt.set===si;
+      var typeShort = SET_TYPE_SHORT[s.setType]||"";
+      return '<div class="setgrid setrow'+(s.done?" done":"")+(isNext?" nextset":"")+'">'
+        + '<button class="num'+(s.setType==="warmup"?" warmup":"")+'" onclick="cycleSetType('+ei+','+si+')" aria-label="Set '+(si+1)+' type: '+s.setType+'. Tap to change.">'+(typeShort||(si+1))+'</button>'
+        + '<span class="prev">'+(prev ? '<b>'+fmtNum(prev.weightKg)+'</b> × <b>'+fmtNum(prev.reps)+'</b>' : '—')+(pr?'<span class="prtag">🏆 PR</span>':"")+'</span>'
+        + '<input class="setinput" data-winput="'+ei+'-'+si+'" type="number" min="0" step="0.5" inputmode="decimal" placeholder="'+(prev?fmtNum(prev.weightKg):"kg")+'" value="'+(s.weight!=null?s.weight:"")+'" oninput="setDraftVal('+ei+','+si+',\'weight\',this.value)" aria-label="Weight in kg, set '+(si+1)+' of '+esc(ex.name)+'" />'
+        + '<input class="setinput" data-rinput="'+ei+'-'+si+'" type="number" min="0" step="1" inputmode="numeric" placeholder="'+(ex.targetReps?esc(ex.targetReps):(prev?fmtNum(prev.reps):"reps"))+'" value="'+(s.reps!=null?s.reps:"")+'" onfocus="this.select()" oninput="setDraftVal('+ei+','+si+',\'reps\',this.value)" aria-label="Reps, set '+(si+1)+' of '+esc(ex.name)+'" />'
+        + '<button class="check" onclick="toggleSet('+ei+','+si+')" aria-label="'+(s.done?"Uncheck":"Check")+' set '+(si+1)+' of '+esc(ex.name)+'">✓</button>'
+        + '<button class="setdel" onclick="deleteSet('+ei+','+si+')" aria-label="Delete set '+(si+1)+'">✕</button></div>';
+    }).join("");
+    card += '<button class="addset" onclick="addSet('+ei+')">+ Add Set</button></div>';
+    return card;
+  }).join("");
+  h += '<button class="btn secondary" onclick="addExerciseToDraft()">+ Add Exercise</button>';
+  h += '<button class="btn" style="margin-top:12px" '+(c.done===0?"disabled":"")+' onclick="finishWorkout()">Finish Workout'+(c.done? ' · '+c.done+' set'+(c.done===1?"":"s")+' checked':'')+'</button>';
+  h += '<p class="note" style="text-align:center;margin-top:10px">Only checked sets (✓) are saved. Unchecked sets are dropped when you finish.</p>';
+  return h;
+}
+function afterLoggerRender(){
+  var ti = document.getElementById("draftTitle");
+  if(ti) ti.value = draft.title;
+  updateElapsed();
+}
+function updateElapsed(){
+  var el = document.getElementById("elapsed");
+  if(el && draft) el.textContent = fmtClock((Date.now() - new Date(draft.startedAt).getTime())/1000);
+}
+setInterval(updateElapsed, 1000);
+function setDraftVal(ei, si, field, val){
+  if(!draft || !draft.exercises[ei] || !draft.exercises[ei].sets[si]) return;
+  var s = draft.exercises[ei].sets[si];
+  var oldWeight = s.weight;
+  var oldReps = s.reps;
+  var v = val==="" ? null : parseFloat(val);
+  var newVal = isNaN(v) ? null : v;
+  s[field] = newVal;
+  if(field==="weight" && oldWeight!==newVal) cascadeWeight(ei, si, oldWeight, newVal);
+  if(field==="reps" && oldReps!==newVal) cascadeReps(ei, si, newVal);
+  saveDraft();
+}
+function cascadeWeight(ei, si, oldWeight, newWeight){
+  var ex = draft.exercises[ei];
+  if(!ex) return;
+  for(var j=si+1;j<ex.sets.length;j++){
+    var later = ex.sets[j];
+    if(later.done) continue;
+    if(later.weight==null || later.weight===oldWeight){
+      later.weight = newWeight;
+      var input = document.querySelector('[data-winput="'+ei+'-'+j+'"]');
+      if(input && document.activeElement!==input) input.value = newWeight!=null ? newWeight : "";
+    }
+  }
+}
+function cascadeReps(ei, si, newReps){
+  var ex = draft.exercises[ei];
+  if(!ex) return;
+  for(var j=si+1;j<ex.sets.length;j++){
+    var later = ex.sets[j];
+    if(later.done) continue;
+    later.reps = newReps;
+    var input = document.querySelector('[data-rinput="'+ei+'-'+j+'"]');
+    if(input && document.activeElement!==input) input.value = newReps!=null ? newReps : "";
+  }
+}
+function cycleSetType(ei, si){
+  var s = draft.exercises[ei].sets[si];
+  var i = SET_TYPES.indexOf(s.setType);
+  s.setType = SET_TYPES[(i+1)%SET_TYPES.length];
+  saveDraft(); render();
+  toast("Set type: " + s.setType);
+}
+function toggleSet(ei, si){
+  var ex = draft.exercises[ei], s = ex.sets[si];
+  s.done = !s.done;
+  saveDraft();
+  if(s.done){
+    buzz(30);
+    if(isPR(ex, s)){ toast("🏆 New PR — "+ex.name+" "+fmtNum(s.weight)+" kg × "+fmtNum(s.reps)+"!", 3400); chime([1046.5,1568]); }
+    var allDone = draftCounts().done === draftCounts().total;
+    if(ex.restSec>0 && !allDone) startRest(ex.restSec, ex.name);
+  }
+  render();
+}
+function addSet(ei){
+  var ex = draft.exercises[ei];
+  if(!ex) return;
+  var cascadedWeight = null;
+  for(var i=ex.sets.length-1;i>=0;i--){
+    if(ex.sets[i].weight!=null){ cascadedWeight = ex.sets[i].weight; break; }
+  }
+  if(cascadedWeight==null && ex.prevSets && ex.prevSets.length){
+    var p = ex.prevSets[ex.sets.length] ? ex.prevSets[ex.sets.length] : ex.prevSets[ex.prevSets.length-1];
+    if(p && p.weightKg!=null) cascadedWeight = p.weightKg;
+  }
+  var cascadedReps = null;
+  for(var k=ex.sets.length-1;k>=0;k--){
+    if(ex.sets[k].reps!=null){ cascadedReps = ex.sets[k].reps; break; }
+  }
+  if(cascadedReps==null && ex.prevSets && ex.prevSets.length){
+    var pr = ex.prevSets[ex.sets.length] ? ex.prevSets[ex.sets.length] : ex.prevSets[ex.prevSets.length-1];
+    if(pr && pr.reps!=null) cascadedReps = pr.reps;
+  }
+  ex.sets.push({ setType:"normal", weight:cascadedWeight, reps:cascadedReps, done:false });
+  saveDraft(); render();
+}
+function deleteSet(ei, si){
+  draft.exercises[ei].sets.splice(si,1);
+  if(!draft.exercises[ei].sets.length) draft.exercises.splice(ei,1);
+  saveDraft(); render();
+}
+function removeDraftExercise(ei){
+  var name = draft.exercises[ei].name;
+  confirmSheet("Remove exercise?", name+" and its sets will be removed from this workout.", "Remove", function(){
+    draft.exercises.splice(ei,1); saveDraft(); render();
+  });
+}
+function editDraftRest(ei){ openRestPicker(draft.exercises[ei].restSec, function(sec){ draft.exercises[ei].restSec = sec; saveDraft(); render(); }); }
+function addExerciseToDraft(){
+  openPicker(function(id){
+    var e = exById(id); if(!e || !draft) return;
+    draft.exercises.push(draftExercise(e, 3, "", 90));
+    saveDraft(); render();
+    setTimeout(function(){ window.scrollTo(0, document.body.scrollHeight); }, 50);
+  });
+}
+function finishWorkout(){
+  var c = draftCounts();
+  if(c.done===0){ toast("Check at least one set first — only checked sets count."); return; }
+  var kept = draft.exercises.map(function(ex){
+    var sets = ex.sets.filter(function(s){ return s.done; }).map(function(s){
+      return { setType:s.setType, weightKg:s.weight, reps:s.reps, completed:true };
+    });
+    if(!sets.length) return null;
+    return { exerciseId: ex.exerciseId, name: ex.name, muscleGroup: ex.muscleGroup, sets: sets };
+  }).filter(Boolean);
+  var now = new Date();
+  var w = { id:"w"+uid(), title: draft.title.trim()||defaultTitle(), routineId: draft.routineId,
+    startedAt: draft.startedAt, endedAt: now.toISOString(),
+    durationSec: Math.max(1, Math.round((now - new Date(draft.startedAt))/1000)), exercises: kept };
+  /* count PRs against history before saving */
+  var prCount = 0;
+  kept.forEach(function(ex){
+    var b = bestsFor(ex.exerciseId);
+    ex.sets.forEach(function(s){
+      if(s.setType!=="warmup" && s.weightKg!=null && b.bestWeight!=null && s.weightKg>b.bestWeight) prCount++;
+    });
+  });
+  w.prCount = prCount;
+  S.workouts.push(w); save();
+  draft = null; saveDraft(); stopRest();
+  go("summary", w.id);
+}
+
+/* ---------------- summary ---------------- */
+function vSummary(){
+  var w = S.workouts.find(function(x){ return x.id===route.param; });
+  if(!w) return '<div class="pagehead"><h1>Done</h1></div><div class="empty">Workout saved to History.</div><button class="btn" onclick="go(\'train\')">Back to Train</button>';
+  var vol = workoutVolume(w);
+  var sets = w.exercises.reduce(function(a,e){ return a+e.sets.length; },0);
+  var h = '<div class="pagehead"><h1>🎉 Workout complete</h1><p>'+esc(w.title)+' · '+fmtDate(w.startedAt)+'</p></div>';
+  h += '<div class="statgrid"><div class="stat"><div class="v">'+fmtClock(w.durationSec||0)+'</div><div class="l">Duration</div></div>'
+    + '<div class="stat"><div class="v">'+fmtVol(vol)+'</div><div class="l">Volume</div></div>'
+    + '<div class="stat"><div class="v">'+sets+'</div><div class="l">Sets</div></div></div>';
+  if(w.prCount) h += '<div class="banner"><b>🏆 '+w.prCount+' new PR'+(w.prCount===1?"":"s")+'</b>Heavier than your previous best. Nice work.</div>';
+  if(w.amrapRounds!=null) h += '<div class="banner"><b>⏱ AMRAP complete — '+w.amrapRounds+' round'+(w.amrapRounds===1?"":"s")+'</b>'+(w.amrapDurationMin||20)+'-minute AMRAP. Beat that rounds count next time.</div>';
+  h += '<div class="card">' + w.exercises.map(function(ex){
+    return '<div class="kv"><span>'+esc(ex.name)+'</span><b>'+ex.sets.length+' set'+(ex.sets.length===1?"":"s")+'</b></div>';
+  }).join("") + '</div>';
+  h += '<button class="btn" onclick="go(\'workoutDetail\',\''+w.id+'\')">View workout</button>';
+  h += '<button class="btn ghost" onclick="go(\'train\')">Back to Train</button>';
+  return h;
+}
+
+/* ---------------- rest timer ---------------- */
+var rest = { endsAt:0, total:0, label:"", timer:null };
+function startRest(sec, label){
+  rest.total = sec; rest.endsAt = Date.now() + sec*1000; rest.label = label||"";
+  document.getElementById("restbar").classList.add("show");
+  document.getElementById("restLabel").textContent = "Rest" + (label ? " · "+label : "");
+  clearInterval(rest.timer);
+  rest.timer = setInterval(tickRest, 250);
+  tickRest();
+}
+function tickRest(){
+  var left = Math.max(0, Math.round((rest.endsAt - Date.now())/1000));
+  document.getElementById("restTime").textContent = fmtClock(left);
+  document.getElementById("restProg").style.width = (rest.total ? (left/rest.total*100) : 0) + "%";
+  if(left<=0){
+    stopRest();
+    toast("⏰ Rest over — next set!");
+    chime([880,880,1318.5]); buzz([120,60,120]);
+  }
+}
+function stopRest(){
+  clearInterval(rest.timer);
+  document.getElementById("restbar").classList.remove("show");
+}
+document.getElementById("restSkip").addEventListener("click", stopRest);
+document.getElementById("restPlus").addEventListener("click", function(){ rest.endsAt += 15000; rest.total += 15; tickRest(); });
+document.getElementById("restMinus").addEventListener("click", function(){ rest.endsAt -= 15000; tickRest(); });
+
+/* ---------------- history ---------------- */
+function vHistory(){
+  var ws = sortedWorkouts();
+  var totalVol = ws.reduce(function(a,w){ return a+workoutVolume(w); },0);
+  var weekAgo = Date.now() - 7*24*3600*1000;
+  var thisWeek = ws.filter(function(w){ return new Date(w.startedAt).getTime()>=weekAgo; }).length;
+  var h = '<div class="pagehead"><h1>History</h1><p>Every finished workout, newest first.</p></div>';
+  h += '<div class="statgrid"><div class="stat"><div class="v">'+ws.length+'</div><div class="l">Workouts</div></div>'
+    + '<div class="stat"><div class="v">'+thisWeek+'</div><div class="l">This week</div></div>'
+    + '<div class="stat"><div class="v">'+fmtVol(totalVol)+'</div><div class="l">Total volume</div></div></div>';
+  if(!ws.length) h += '<div class="empty"><b>No workouts yet</b>Finish your first workout and it lands here.</div>';
+  var lastMonth = "";
+  ws.forEach(function(w){
+    var d = new Date(w.startedAt);
+    var mk = d.toLocaleDateString(undefined,{month:"long", year:"numeric"});
+    if(mk!==lastMonth){ lastMonth = mk; h += '<div class="sectionlabel">'+esc(mk)+'</div>'; }
+    h += workoutRow(w);
+  });
+  return h;
+}
+function vWorkoutDetail(){
+  var w = S.workouts.find(function(x){ return x.id===route.param; });
+  if(!w) return '<div class="pagehead"><h1>Workout</h1></div><div class="empty">Workout not found.</div>';
+  var h = '<div class="topbar"><button class="iconbtn" onclick="go(\'history\')" aria-label="Back">‹</button><h1>'+esc(w.title)+'</h1></div>';
+  h += '<p class="note" style="margin:0 0 12px">'+fmtDate(w.startedAt)+' · '+fmtClock(w.durationSec||0)+' · '+fmtVol(workoutVolume(w))+' total volume'
+    + (w.amrapRounds!=null ? ' · <b>⏱ AMRAP: '+w.amrapRounds+' rounds in '+(w.amrapDurationMin||20)+' min</b>' : '')
+    + (w.prCount ? ' · <span class="gold">🏆 '+w.prCount+' PR'+(w.prCount===1?"":"s")+'</span>' : '') + '</p>';
+  h += w.exercises.map(function(ex){
+    var b = bestsFor(ex.exerciseId);
+    var rows = ex.sets.map(function(s, i){
+      var pr = s.setType!=="warmup" && s.weightKg!=null && b.bestWeight!=null && s.weightKg>=b.bestWeight && S.workouts.some(function(x){ return x.id!==w.id; });
+      return '<tr><td>'+(SET_TYPE_SHORT[s.setType]||(i+1))+'</td><td>'+fmtNum(s.weightKg)+' kg</td><td>'+fmtNum(s.reps)+' reps</td><td>'+(est1rm(s.weightKg,s.reps)!=null?fmtNum(Math.round(est1rm(s.weightKg,s.reps)))+" kg":"–")+'</td></tr>';
+    }).join("");
+    return '<div class="card"><div class="exhead"><button class="taphead" onclick="openExerciseDetail(\''+ex.exerciseId+'\',\'history\')">'+thumb(ex.name, ex.muscleGroup, 44)+'<span class="grow"><span class="t">'+esc(ex.name)+' ›</span><span class="s" style="display:block">'+esc(ex.muscleGroup)+' · tap for demo, graph & notes</span>'+(hasExerciseNote(ex.exerciseId)?'<span class="note-preview">📝 '+esc(notePreviewText(ex.exerciseId))+'</span>':'')+'</span></button></div>'
+      + '<table class="sets"><tr><th>Set</th><th>Weight</th><th>Reps</th><th>Est. 1RM</th></tr>'+rows+'</table></div>';
+  }).join("");
+  h += '<button class="btn secondary" onclick="repeatWorkout(\''+w.id+'\')">Repeat this workout</button>';
+  h += '<button class="btn danger" style="margin-top:10px" onclick="deleteWorkout(\''+w.id+'\')">Delete workout</button>';
+  return h;
+}
+function repeatWorkout(id){
+  if(draft){ toast("Finish or discard the open workout first"); go(draft.mode==="amrap" ? "amrap" : "logger"); return; }
+  var w = S.workouts.find(function(x){ return x.id===id; });
+  if(!w) return;
+  if(w.amrapRounds!=null && w.routineId){ var rr = S.routines.find(function(x){ return x.id===w.routineId; }); if(rr && rr.mode==="amrap"){ doStartRoutine(rr.id); return; } }
+  draft = { title: w.title, routineId: w.routineId||null, startedAt: new Date().toISOString(),
+    exercises: w.exercises.map(function(we){
+      var e = exById(we.exerciseId) || { id:we.exerciseId, name:we.name, muscleGroup:we.muscleGroup, equipment:"" };
+      var d = draftExercise(e, we.sets.length, "", 90);
+      d.sets = we.sets.map(function(s){ return { setType:s.setType, weight:s.weightKg, reps:s.reps, done:false }; });
+      return d;
+    }) };
+  saveDraft(); go("logger");
+}
+function deleteWorkout(id){
+  confirmSheet("Delete workout?", "This workout will be removed from your history.", "Delete", function(){
+    S.workouts = S.workouts.filter(function(w){ return w.id!==id; });
+    save(); go("history"); toast("Workout deleted");
+  });
+}
+
+/* ---------------- measures ---------------- */
+function latestMeasure(key){
+  var ms = S.measurements.slice().sort(function(a,b){ return b.date < a.date ? -1 : 1; });
+  for(var i=0;i<ms.length;i++){ if(ms[i][key]!=null) return ms[i][key]; }
+  return null;
+}
+function vMeasures(){
+  var ms = S.measurements.slice().sort(function(a,b){ return b.date < a.date ? -1 : 1; });
+  var h = '<div class="pagehead"><h1>Measures</h1><p>Body weight and measurements over time.</p></div>';
+  var w = latestMeasure("weightKg"), fat = latestMeasure("fatPercent"), waist = latestMeasure("waistCm");
+  h += '<div class="statgrid"><div class="stat"><div class="v">'+(w!=null?fmtNum(w):"–")+'</div><div class="l">Weight (kg)</div></div>'
+    + '<div class="stat"><div class="v">'+(fat!=null?fmtNum(fat):"–")+'</div><div class="l">Body fat %</div></div>'
+    + '<div class="stat"><div class="v">'+(waist!=null?fmtNum(waist):"–")+'</div><div class="l">Waist (cm)</div></div></div>';
+  var wPts = ms.slice().reverse().filter(function(m){ return m.weightKg!=null; });
+  if(wPts.length>=2){
+    h += '<div class="card"><h3>Weight trend</h3>' + lineChart(wPts.map(function(m){ return m.weightKg; }), wPts.map(function(m){ return fmtDateShort(m.date); })) + '</div>';
+  }
+  h += '<button class="btn" onclick="newMeasure()">+ Log Measurements</button>';
+  h += '<div class="sectionlabel">Entries</div>';
+  if(!ms.length) h += '<div class="empty">No entries yet.</div>';
+  h += ms.map(function(m){
+    var bits = MEASURE_FIELDS.filter(function(f){ return m[f[0]]!=null; }).slice(0,4).map(function(f){ return f[1]+" "+fmtNum(m[f[0]])+f[2]; }).join(" · ");
+    return '<button class="rowitem" onclick="editMeasure(\''+m.id+'\')"><span class="grow"><span class="t">'+fmtDate(m.date)+'</span><span class="s" style="display:block">'+esc(bits||"No values")+'</span></span><span class="chev">›</span></button>';
+  }).join("");
+  return h;
+}
+function newMeasure(){ go("measureEdit", null); }
+function editMeasure(id){ go("measureEdit", id); }
+function vMeasureEdit(){
+  var m = route.param ? S.measurements.find(function(x){ return x.id===route.param; }) : null;
+  var h = '<div class="topbar"><button class="iconbtn" onclick="go(\'measures\')" aria-label="Back">‹</button><h1>'+(m?"Edit Entry":"Log Measurements")+'</h1></div>';
+  h += '<div class="field" style="margin-bottom:12px"><label for="meDate">Date</label><input id="meDate" type="date" value="'+(m?m.date:todayStr())+'" /></div>';
+  h += '<div class="grid2">' + MEASURE_FIELDS.map(function(f){
+    return '<div class="field"><label for="me_'+f[0]+'">'+f[1]+' ('+f[2]+')</label><input id="me_'+f[0]+'" type="number" step="0.1" min="0" inputmode="decimal" value="'+(m && m[f[0]]!=null ? m[f[0]] : "")+'" /></div>';
+  }).join("") + '</div>';
+  h += '<button class="btn" style="margin-top:14px" onclick="saveMeasure(\''+(m?m.id:"")+'\')">Save</button>';
+  if(m) h += '<button class="btn danger" style="margin-top:10px" onclick="deleteMeasure(\''+m.id+'\')">Delete entry</button>';
+  return h;
+}
+function saveMeasure(id){
+  var rec = { id: id || ("m"+uid()), date: document.getElementById("meDate").value || todayStr() };
+  var any = false;
+  MEASURE_FIELDS.forEach(function(f){
+    var v = document.getElementById("me_"+f[0]).value;
+    var n = v==="" ? null : parseFloat(v);
+    rec[f[0]] = isNaN(n) ? null : n;
+    if(rec[f[0]]!=null) any = true;
+  });
+  if(!any){ toast("Enter at least one measurement"); return; }
+  if(id){ var i = S.measurements.findIndex(function(x){ return x.id===id; }); if(i>=0) S.measurements[i]=rec; }
+  else S.measurements.push(rec);
+  save(); toast("Saved"); go("measures");
+}
+function deleteMeasure(id){
+  confirmSheet("Delete entry?", "This measurement entry will be removed.", "Delete", function(){
+    S.measurements = S.measurements.filter(function(x){ return x.id!==id; });
+    save(); go("measures"); toast("Entry deleted");
+  });
+}
+
+/* ---------------- data: backup & CSV ---------------- */
+function download(name, text, type){
+  var blob = new Blob([text], { type: type||"text/plain" });
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 400);
+}
+function exportBackup(){
+  download("mooscles-backup.json", JSON.stringify({ app:"mooscles", version:1, exportedAt:new Date().toISOString(), data:S }, null, 2), "application/json");
+  toast("Backup downloaded");
+}
+var pendingImport = null;
+function importBackup(){ pendingImport = "json"; var fi=document.getElementById("fileInput"); fi.value=""; fi.click(); }
+function importCsv(){ pendingImport = "csv"; var fi=document.getElementById("fileInput"); fi.value=""; fi.click(); }
+document.getElementById("fileInput").addEventListener("change", function(e){
+  var f = e.target.files && e.target.files[0];
+  if(!f) return;
+  var reader = new FileReader();
+  reader.onload = function(){
+    try{
+      if(pendingImport==="json") doImportJson(String(reader.result));
+      else doImportCsv(String(reader.result));
+    }catch(err){ toast("Import failed: "+err.message); }
+    pendingImport = null;
+  };
+  reader.readAsText(f);
+});
+function doImportJson(text){
+  var parsed = JSON.parse(text);
+  var data = parsed && parsed.data ? parsed.data : parsed;
+  if(!data || !Array.isArray(data.workouts) || !Array.isArray(data.routines)) throw new Error("not a backup file");
+  confirmSheet("Replace your data?", "Importing replaces your current routines, history and measures with the backup's.", "Replace", function(){
+    S = Object.assign(blankState(), data); save(); draft=null; saveDraft(); render(); toast("Backup imported");
+  });
+}
+function csvEscape(v){ v = v==null?"":String(v); return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; }
+function exportCsv(){
+  if(!S.workouts.length){ toast("No workouts to export yet"); return; }
+  var head = "title,start_time,end_time,description,exercise_title,superset_id,exercise_notes,set_index,set_type,weight_kg,reps,distance_km,duration_seconds,rpe";
+  var lines = [head];
+  sortedWorkouts().forEach(function(w){
+    var start = w.startedAt.replace("T"," ").slice(0,19), end = (w.endedAt||w.startedAt).replace("T"," ").slice(0,19);
+    w.exercises.forEach(function(ex){
+      ex.sets.forEach(function(s, i){
+        lines.push([w.title, start, end, "", ex.name, "", "", i, s.setType, s.weightKg==null?"":s.weightKg, s.reps==null?"":s.reps, "", "", ""].map(csvEscape).join(","));
+      });
+    });
+  });
+  download("workout-history.csv", lines.join("\n"), "text/csv");
+  toast("CSV downloaded");
+}
+function parseCsv(text){
+  var rows=[], row=[], cur="", inQ=false;
+  for(var i=0;i<text.length;i++){
+    var ch = text[i];
+    if(inQ){
+      if(ch==='"'){ if(text[i+1]==='"'){ cur+='"'; i++; } else inQ=false; }
+      else cur+=ch;
+    } else if(ch==='"') inQ=true;
+    else if(ch===","){ row.push(cur); cur=""; }
+    else if(ch==="\n"||ch==="\r"){ if(ch==="\r"&&text[i+1]==="\n") i++; row.push(cur); cur=""; if(row.length>1||row[0]!=="") rows.push(row); row=[]; }
+    else cur+=ch;
+  }
+  if(cur!==""||row.length){ row.push(cur); rows.push(row); }
+  return rows;
+}
+function doImportCsv(text){
+  var rows = parseCsv(text);
+  if(rows.length<2) throw new Error("empty CSV");
+  var head = rows[0].map(function(x){ return x.trim().toLowerCase(); });
+  var ix = function(name){ return head.indexOf(name); };
+  var iTitle=ix("title"), iStart=ix("start_time"), iEnd=ix("end_time"), iEx=ix("exercise_title"),
+      iIdx=ix("set_index"), iType=ix("set_type"), iW=ix("weight_kg"), iR=ix("reps");
+  if(iTitle<0||iEx<0) throw new Error("missing required columns");
+  var byKey = {};
+  var order = [];
+  rows.slice(1).forEach(function(r){
+    var title = (r[iTitle]||"").trim(); if(!title) return;
+    var startRaw = (r[iStart]||"").trim();
+    var start = startRaw ? new Date(startRaw.replace(" ","T")).toISOString() : new Date().toISOString();
+    var key = title+"|"+start;
+    if(!byKey[key]){ byKey[key] = { id:"w"+uid(), title:title, routineId:null, startedAt:start, endedAt:start, durationSec:0, exercises:[], _map:{} }; order.push(key); }
+    var w = byKey[key];
+    if(iEnd>=0 && r[iEnd]){ var e2 = new Date(r[iEnd].replace(" ","T")); if(!isNaN(e2)) w.endedAt = e2.toISOString(); }
+    var exName = (r[iEx]||"").trim(); if(!exName) return;
+    var ex = exByName(exName);
+    if(!ex){ ex = { id:"x"+uid(), name:exName, muscleGroup:"Other", equipment:"Other", isCustom:true }; S.customExercises.push(ex); }
+    if(!w._map[ex.id]){ w._map[ex.id] = { exerciseId:ex.id, name:ex.name, muscleGroup:ex.muscleGroup, sets:[] }; w.exercises.push(w._map[ex.id]); }
+    var wv = iW>=0 ? parseFloat(r[iW]) : null, rv = iR>=0 ? parseInt(r[iR],10) : null;
+    w._map[ex.id].sets.push({ setType: (iType>=0 && r[iType]) ? r[iType].trim().toLowerCase() : "normal",
+      weightKg: isNaN(wv)?null:wv, reps: isNaN(rv)?null:rv, completed:true });
+  });
+  var imported = order.map(function(k){
+    var w = byKey[k]; delete w._map;
+    w.exercises = w.exercises.filter(function(e){ return e.sets.length; });
+    w.durationSec = Math.max(0, Math.round((new Date(w.endedAt)-new Date(w.startedAt))/1000));
+    return w;
+  }).filter(function(w){ return w.exercises.length; });
+  if(!imported.length) throw new Error("no workouts found in file");
+  S.workouts = S.workouts.concat(imported); save();
+  render(); toast("Imported "+imported.length+" workouts from CSV 🎉");
+}
+
+/* ---------------- init ---------------- */
+render();
+</script>
+  </body>
+</html>
