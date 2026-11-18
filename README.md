@@ -28,7 +28,7 @@ It follows your system light / dark setting.
   vibration alerts
 - **PR detection** — trophy badge and toast when you beat your best
   weight or estimated 1RM (warmup sets excluded)
-- **Exercise catalogue** — 43 built-in exercises with movement
+- **Exercise catalogue** — 64 built-in exercises with movement
   thumbnails, plus your own custom exercises; per-exercise stats,
   best weight, estimated 1RM and a progress chart
 - **History** — every finished workout with volume, duration and PRs;
