@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <title>Mooscles — Workout Tracker</title>
     <style>
       :root{
@@ -344,8 +345,15 @@
     var LS_DRAFT = "wt-shareable-draft";
     function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
     function blankState(){ return { customExercises:[], routines:[], workouts:[], measurements:[], exerciseNotes:{}, prefs:{sound:true, vibrate:true} }; }
+    function normalizeState(s){
+      var out = Object.assign(blankState(), (s && typeof s==="object") ? s : {});
+      ["customExercises","routines","workouts","measurements"].forEach(function(k){ if(!Array.isArray(out[k])) out[k] = []; });
+      if(!out.exerciseNotes || typeof out.exerciseNotes!=="object") out.exerciseNotes = {};
+      out.prefs = Object.assign({ sound:true, vibrate:true }, (out.prefs && typeof out.prefs==="object") ? out.prefs : {});
+      return out;
+    }
     function loadState(){
-      try{ var raw = localStorage.getItem(LS_KEY); if(raw){ var s = JSON.parse(raw); if(s && Array.isArray(s.workouts)) return Object.assign(blankState(), s); } }catch(e){}
+      try{ var raw = localStorage.getItem(LS_KEY); if(raw){ var s = JSON.parse(raw); if(s && typeof s==="object") return normalizeState(s); } }catch(e){}
       return blankState();
     }
     var S = loadState();
@@ -355,7 +363,7 @@
     function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(S)); }catch(e){} }
     function allExercises(){ return CATALOG.concat(S.customExercises); }
     function exById(id){ return allExercises().find(function(e){ return e.id===id; }) || null; }
-    function exByName(name){ return allExercises().find(function(e){ return e.name===name; }) || null; }
+    function exByName(name){ var n = String(name||"").trim().toLowerCase(); return allExercises().find(function(e){ return e.name.trim().toLowerCase()===n; }) || null; }
     function getExerciseNotes(id){
       if(!id) return "";
       if(S.exerciseNotes && typeof S.exerciseNotes[id]==="string" && S.exerciseNotes[id]) return S.exerciseNotes[id];
@@ -374,7 +382,15 @@
       save();
     }
 
-    function loadDraft(){ try{ var r = localStorage.getItem(LS_DRAFT); return r ? JSON.parse(r) : null; }catch(e){ return null; } }
+    function loadDraft(){
+      try{
+        var r = localStorage.getItem(LS_DRAFT); if(!r) return null;
+        var d = JSON.parse(r);
+        if(!d || typeof d!=="object" || !Array.isArray(d.exercises) || typeof d.title!=="string") return null;
+        d.exercises = d.exercises.filter(function(ex){ return ex && Array.isArray(ex.sets); });
+        return d;
+      }catch(e){ return null; }
+    }
     function saveDraft(){ try{ if(draft) localStorage.setItem(LS_DRAFT, JSON.stringify(draft)); else localStorage.removeItem(LS_DRAFT); }catch(e){} }
     var draft = loadDraft();
 
@@ -524,7 +540,7 @@
 <script>
 "use strict";
 /* ---------------- history queries ---------------- */
-function sortedWorkouts(){ return S.workouts.slice().sort(function(a,b){ return b.startedAt < a.startedAt ? -1 : 1; }); }
+function sortedWorkouts(){ return S.workouts.slice().sort(function(a,b){ return a.startedAt===b.startedAt ? 0 : (b.startedAt < a.startedAt ? -1 : 1); }); }
 function prevFor(exerciseId){
   var ws = sortedWorkouts();
   for(var i=0;i<ws.length;i++){
@@ -578,7 +594,7 @@ function lineChart(values, labels){
 
 /* ---------------- sheets ---------------- */
 var sheetCb = null;
-function openSheet(html){ var sh=document.getElementById("sheet"); sh.innerHTML=html; sh.classList.add("show"); document.getElementById("scrim").classList.add("show"); }
+function openSheet(html){ var sh=document.getElementById("sheet"); sh.innerHTML=html; sh.scrollTop=0; sh.classList.add("show"); document.getElementById("scrim").classList.add("show"); }
 function closeSheet(){ document.getElementById("sheet").classList.remove("show"); document.getElementById("scrim").classList.remove("show"); sheetCb=null; }
 document.getElementById("scrim").addEventListener("click", closeSheet);
 
@@ -598,7 +614,7 @@ function renderPickerList(){
   var list = allExercises().filter(function(e){ return !q || e.name.toLowerCase().indexOf(q)>=0 || e.muscleGroup.toLowerCase().indexOf(q)>=0; });
   var el = document.getElementById("pickerList"); if(!el) return;
   if(!list.length){ el.innerHTML = '<div class="empty">No exercises match.</div>'; return; }
-  el.innerHTML = list.slice(0,60).map(function(e){
+  el.innerHTML = list.slice(0,200).map(function(e){
     var hasN = hasExerciseNote(e.id);
     return '<button class="rowitem" onclick="pickExercise(\''+e.id+'\')">'+thumb(e.name,e.muscleGroup,44)
       + '<span class="grow"><span class="t">'+esc(e.name)+'</span><span class="s" style="display:block">'+esc(e.muscleGroup)+' · '+esc(e.equipment)+'</span>'+(hasN?'<span class="note-preview">📝 '+esc(notePreviewText(e.id))+'</span>':'')+'</span></button>';
@@ -809,6 +825,7 @@ function editRoutine(id){
   var r = S.routines.find(function(x){ return x.id===id; });
   if(!r) return;
   ui.routineDraft = JSON.parse(JSON.stringify(r));
+  ui.routineDraft.exercises = (ui.routineDraft.exercises||[]).filter(function(re){ return exById(re.exerciseId); });
   go("routineEdit");
 }
 function vRoutineEdit(){
@@ -860,8 +877,9 @@ function saveRoutine(){
   var rd = ui.routineDraft;
   rd.name = (document.getElementById("rdName").value||"").trim();
   if(!rd.name){ toast("Give the routine a name"); return; }
+  rd.exercises = rd.exercises.filter(function(re){ return re.exerciseId && exById(re.exerciseId); });
   if(!rd.exercises.length){ toast("Add at least one exercise"); return; }
-  rd.exercises = rd.exercises.filter(function(re){ return re.exerciseId && re.sets>0; });
+  if(rd.exercises.some(function(re){ return !(re.sets>0); })){ toast("Every exercise needs at least 1 set"); return; }
   if(rd.id){
     var i = S.routines.findIndex(function(r){ return r.id===rd.id; });
     if(i>=0) S.routines[i] = rd;
@@ -881,7 +899,7 @@ function vExercises(){
   var q = ui.exSearch.trim().toLowerCase();
   var list = allExercises().filter(function(e){
     if(ui.exMuscle!=="All" && e.muscleGroup!==ui.exMuscle) return false;
-    return !q || e.name.toLowerCase().indexOf(q)>=0;
+    return !q || e.name.toLowerCase().indexOf(q)>=0 || e.muscleGroup.toLowerCase().indexOf(q)>=0;
   });
   var h = '<div class="pagehead"><h1>Exercises</h1><p>'+allExercises().length+' exercises in your catalogue. Tap any exercise for its demo, progression graph and your notes.</p></div>';
   h += '<button class="btn" style="margin-bottom:12px" onclick="openCustomExerciseStandalone()">+ Add New Exercise</button>';
@@ -912,7 +930,7 @@ function renderExerciseList(){
   var q = ui.exSearch.trim().toLowerCase();
   var list = allExercises().filter(function(e){
     if(ui.exMuscle!=="All" && e.muscleGroup!==ui.exMuscle) return false;
-    return !q || e.name.toLowerCase().indexOf(q)>=0;
+    return !q || e.name.toLowerCase().indexOf(q)>=0 || e.muscleGroup.toLowerCase().indexOf(q)>=0;
   });
   el.innerHTML = exerciseListHtml(list);
   var si = document.getElementById("exSearch");
@@ -1025,7 +1043,7 @@ function draftExercise(ex, setCount, targetReps, restSec){
     bestWeight: bests.bestWeight, best1rm: bests.best1rm, sets: sets };
 }
 function startEmpty(){
-  if(draft){ go("logger"); return; }
+  if(draft){ go(draft.mode==="amrap" ? "amrap" : "logger"); return; }
   draft = { title: defaultTitle(), routineId:null, startedAt: new Date().toISOString(), exercises: [] };
   saveDraft(); go("logger");
 }
@@ -1101,7 +1119,7 @@ function vAmrap(){
   }).join("") + '</div>';
   h += '<div class="card"><div class="field"><label for="amrapWeight">Kettlebell weight used (kg) — one bell for everything</label>'
     + '<input id="amrapWeight" type="number" min="0" step="0.5" inputmode="decimal" placeholder="e.g. 20" value="'+(draft.amrapWeightKg!=null?draft.amrapWeightKg:"")+'" oninput="draft.amrapWeightKg=this.value===\'\'?null:parseFloat(this.value);saveDraft()" /></div></div>';
-  h += '<button class="btn" onclick="finishAmrap()">Finish & log '+(draft.amrapRounds||0)+' round'+((draft.amrapRounds||0)===1?"":"s")+'</button>';
+  h += '<button class="btn" id="amrapFinishBtn" onclick="finishAmrap()">Finish & log '+(draft.amrapRounds||0)+' round'+((draft.amrapRounds||0)===1?"":"s")+'</button>';
   h += '<p class="note" style="text-align:center;margin-top:10px">Finishing saves one set per exercise per round, at the bell weight above, so your history stays complete.</p>';
   return h;
 }
@@ -1154,6 +1172,8 @@ function amrapRoundsDelta(d){
   saveDraft();
   var el = document.getElementById("amrapRounds");
   if(el) el.textContent = draft.amrapRounds; else render();
+  var fb = document.getElementById("amrapFinishBtn");
+  if(fb) fb.textContent = "Finish & log " + draft.amrapRounds + " round" + (draft.amrapRounds===1 ? "" : "s");
 }
 function amrapTick(ei){
   if(!draft || draft.mode!=="amrap") return;
@@ -1171,7 +1191,9 @@ function amrapTick(ei){
 }
 function finishAmrap(){
   if(!draft || draft.mode!=="amrap") return;
+  if(!draft.exercises.length){ toast("This AMRAP has no exercises left — discard it and start again."); return; }
   var rounds = draft.amrapRounds||0;
+  if(rounds<=0){ toast("Complete at least one full round first — tick every move to bank a round."); return; }
   var total = draft.amrapDurationSec||1200;
   var elapsed = Math.round(total - amrapRemaining());
   if(draft.amrapState==="ready") elapsed = Math.max(1, Math.round((Date.now() - new Date(draft.startedAt).getTime())/1000));
@@ -1243,8 +1265,8 @@ function vLogger(){
       return '<div class="setgrid setrow'+(s.done?" done":"")+(isNext?" nextset":"")+'">'
         + '<button class="num'+(s.setType==="warmup"?" warmup":"")+'" onclick="cycleSetType('+ei+','+si+')" aria-label="Set '+(si+1)+' type: '+s.setType+'. Tap to change.">'+(typeShort||(si+1))+'</button>'
         + '<span class="prev">'+(prev ? '<b>'+fmtNum(prev.weightKg)+'</b> × <b>'+fmtNum(prev.reps)+'</b>' : '—')+(pr?'<span class="prtag">🏆 PR</span>':"")+'</span>'
-        + '<input class="setinput" data-winput="'+ei+'-'+si+'" type="number" min="0" step="0.5" inputmode="decimal" placeholder="'+(prev?fmtNum(prev.weightKg):"kg")+'" value="'+(s.weight!=null?s.weight:"")+'" oninput="setDraftVal('+ei+','+si+',\'weight\',this.value)" aria-label="Weight in kg, set '+(si+1)+' of '+esc(ex.name)+'" />'
-        + '<input class="setinput" data-rinput="'+ei+'-'+si+'" type="number" min="0" step="1" inputmode="numeric" placeholder="'+(ex.targetReps?esc(ex.targetReps):(prev?fmtNum(prev.reps):"reps"))+'" value="'+(s.reps!=null?s.reps:"")+'" onfocus="this.select()" oninput="setDraftVal('+ei+','+si+',\'reps\',this.value)" aria-label="Reps, set '+(si+1)+' of '+esc(ex.name)+'" />'
+        + '<input class="setinput" data-winput="'+ei+'-'+si+'" type="number" min="0" step="0.5" inputmode="decimal" placeholder="'+(prev && prev.weightKg!=null ? fmtNum(prev.weightKg) : "kg")+'" value="'+(s.weight!=null?s.weight:"")+'" oninput="setDraftVal('+ei+','+si+',\'weight\',this.value)" aria-label="Weight in kg, set '+(si+1)+' of '+esc(ex.name)+'" />'
+        + '<input class="setinput" data-rinput="'+ei+'-'+si+'" type="number" min="0" step="1" inputmode="numeric" placeholder="'+(ex.targetReps?esc(ex.targetReps):(prev && prev.reps!=null ? fmtNum(prev.reps) : "reps"))+'" value="'+(s.reps!=null?s.reps:"")+'" onfocus="this.select()" oninput="setDraftVal('+ei+','+si+',\'reps\',this.value)" aria-label="Reps, set '+(si+1)+' of '+esc(ex.name)+'" />'
         + '<button class="check" onclick="toggleSet('+ei+','+si+')" aria-label="'+(s.done?"Uncheck":"Check")+' set '+(si+1)+' of '+esc(ex.name)+'">✓</button>'
         + '<button class="setdel" onclick="deleteSet('+ei+','+si+')" aria-label="Delete set '+(si+1)+'">✕</button></div>';
     }).join("");
@@ -1272,10 +1294,10 @@ function setDraftVal(ei, si, field, val){
   var oldWeight = s.weight;
   var oldReps = s.reps;
   var v = val==="" ? null : parseFloat(val);
-  var newVal = isNaN(v) ? null : v;
+  var newVal = isNaN(v) ? null : Math.max(0, v);
   s[field] = newVal;
   if(field==="weight" && oldWeight!==newVal) cascadeWeight(ei, si, oldWeight, newVal);
-  if(field==="reps" && oldReps!==newVal) cascadeReps(ei, si, newVal);
+  if(field==="reps" && oldReps!==newVal) cascadeReps(ei, si, oldReps, newVal);
   saveDraft();
 }
 function cascadeWeight(ei, si, oldWeight, newWeight){
@@ -1291,15 +1313,17 @@ function cascadeWeight(ei, si, oldWeight, newWeight){
     }
   }
 }
-function cascadeReps(ei, si, newReps){
+function cascadeReps(ei, si, oldReps, newReps){
   var ex = draft.exercises[ei];
   if(!ex) return;
   for(var j=si+1;j<ex.sets.length;j++){
     var later = ex.sets[j];
     if(later.done) continue;
-    later.reps = newReps;
-    var input = document.querySelector('[data-rinput="'+ei+'-'+j+'"]');
-    if(input && document.activeElement!==input) input.value = newReps!=null ? newReps : "";
+    if(later.reps==null || later.reps===oldReps){
+      later.reps = newReps;
+      var input = document.querySelector('[data-rinput="'+ei+'-'+j+'"]');
+      if(input && document.activeElement!==input) input.value = newReps!=null ? newReps : "";
+    }
   }
 }
 function cycleSetType(ei, si){
@@ -1380,9 +1404,9 @@ function finishWorkout(){
   /* count PRs against history before saving */
   var prCount = 0;
   kept.forEach(function(ex){
-    var b = bestsFor(ex.exerciseId);
+    var rb = bestsFor(ex.exerciseId).bestWeight;
     ex.sets.forEach(function(s){
-      if(s.setType!=="warmup" && s.weightKg!=null && b.bestWeight!=null && s.weightKg>b.bestWeight) prCount++;
+      if(s.setType!=="warmup" && s.weightKg!=null && rb!=null && s.weightKg>rb){ prCount++; rb = s.weightKg; }
     });
   });
   w.prCount = prCount;
@@ -1467,9 +1491,16 @@ function vWorkoutDetail(){
     + (w.amrapRounds!=null ? ' · <b>⏱ AMRAP: '+w.amrapRounds+' rounds in '+(w.amrapDurationMin||20)+' min</b>' : '')
     + (w.prCount ? ' · <span class="gold">🏆 '+w.prCount+' PR'+(w.prCount===1?"":"s")+'</span>' : '') + '</p>';
   h += w.exercises.map(function(ex){
-    var b = bestsFor(ex.exerciseId);
+    var otherBest = null;
+    S.workouts.forEach(function(x){
+      if(x.id===w.id) return;
+      x.exercises.forEach(function(xe){
+        if(xe.exerciseId!==ex.exerciseId) return;
+        xe.sets.forEach(function(xs){ if(xs.completed && xs.setType!=="warmup" && xs.weightKg!=null && (otherBest==null || xs.weightKg>otherBest)) otherBest = xs.weightKg; });
+      });
+    });
     var rows = ex.sets.map(function(s, i){
-      var pr = s.setType!=="warmup" && s.weightKg!=null && b.bestWeight!=null && s.weightKg>=b.bestWeight && S.workouts.some(function(x){ return x.id!==w.id; });
+      var pr = s.setType!=="warmup" && s.weightKg!=null && otherBest!=null && s.weightKg>otherBest;
       return '<tr><td>'+(SET_TYPE_SHORT[s.setType]||(i+1))+'</td><td>'+fmtNum(s.weightKg)+' kg</td><td>'+fmtNum(s.reps)+' reps</td><td>'+(est1rm(s.weightKg,s.reps)!=null?fmtNum(Math.round(est1rm(s.weightKg,s.reps)))+" kg":"–")+'</td></tr>';
     }).join("");
     return '<div class="card"><div class="exhead"><button class="taphead" onclick="openExerciseDetail(\''+ex.exerciseId+'\',\'history\')">'+thumb(ex.name, ex.muscleGroup, 44)+'<span class="grow"><span class="t">'+esc(ex.name)+' ›</span><span class="s" style="display:block">'+esc(ex.muscleGroup)+' · tap for demo, graph & notes</span>'+(hasExerciseNote(ex.exerciseId)?'<span class="note-preview">📝 '+esc(notePreviewText(ex.exerciseId))+'</span>':'')+'</span></button></div>'
@@ -1502,12 +1533,13 @@ function deleteWorkout(id){
 
 /* ---------------- measures ---------------- */
 function latestMeasure(key){
-  var ms = S.measurements.slice().sort(function(a,b){ return b.date < a.date ? -1 : 1; });
+  var ms = S.measurements.slice().sort(function(a,b){ return a.date===b.date ? 0 : (b.date < a.date ? -1 : 1); });
   for(var i=0;i<ms.length;i++){ if(ms[i][key]!=null) return ms[i][key]; }
   return null;
 }
 function vMeasures(){
-  var ms = S.measurements.slice().sort(function(a,b){ return b.date < a.date ? -1 : 1; });
+  if(ghConnected() && !ghAutoTried){ ghAutoTried = true; setTimeout(function(){ ghSync(false, function(){ if(route.name==="measures") render(); }); }, 0); }
+  var ms = S.measurements.slice().sort(function(a,b){ return a.date===b.date ? 0 : (b.date < a.date ? -1 : 1); });
   var h = '<div class="pagehead"><h1>Measures</h1><p>Body weight and measurements over time.</p></div>';
   var w = latestMeasure("weightKg"), fat = latestMeasure("fatPercent"), waist = latestMeasure("waistCm");
   h += '<div class="statgrid"><div class="stat"><div class="v">'+(w!=null?fmtNum(w):"–")+'</div><div class="l">Weight (kg)</div></div>'
@@ -1517,6 +1549,7 @@ function vMeasures(){
   if(wPts.length>=2){
     h += '<div class="card"><h3>Weight trend</h3>' + lineChart(wPts.map(function(m){ return m.weightKg; }), wPts.map(function(m){ return fmtDateShort(m.date); })) + '</div>';
   }
+  h += ghCard();
   h += '<button class="btn" onclick="newMeasure()">+ Log Measurements</button>';
   h += '<div class="sectionlabel">Entries</div>';
   if(!ms.length) h += '<div class="empty">No entries yet.</div>';
@@ -1531,7 +1564,7 @@ function editMeasure(id){ go("measureEdit", id); }
 function vMeasureEdit(){
   var m = route.param ? S.measurements.find(function(x){ return x.id===route.param; }) : null;
   var h = '<div class="topbar"><button class="iconbtn" onclick="go(\'measures\')" aria-label="Back">‹</button><h1>'+(m?"Edit Entry":"Log Measurements")+'</h1></div>';
-  h += '<div class="field" style="margin-bottom:12px"><label for="meDate">Date</label><input id="meDate" type="date" value="'+(m?m.date:todayStr())+'" /></div>';
+  h += '<div class="field" style="margin-bottom:12px"><label for="meDate">Date</label><input id="meDate" type="date" value="'+(m?String(m.date).slice(0,10):todayStr())+'" /></div>';
   h += '<div class="grid2">' + MEASURE_FIELDS.map(function(f){
     return '<div class="field"><label for="me_'+f[0]+'">'+f[1]+' ('+f[2]+')</label><input id="me_'+f[0]+'" type="number" step="0.1" min="0" inputmode="decimal" value="'+(m && m[f[0]]!=null ? m[f[0]] : "")+'" /></div>';
   }).join("") + '</div>';
@@ -1545,7 +1578,7 @@ function saveMeasure(id){
   MEASURE_FIELDS.forEach(function(f){
     var v = document.getElementById("me_"+f[0]).value;
     var n = v==="" ? null : parseFloat(v);
-    rec[f[0]] = isNaN(n) ? null : n;
+    rec[f[0]] = (isNaN(n) || n<0) ? null : n;
     if(rec[f[0]]!=null) any = true;
   });
   if(!any){ toast("Enter at least one measurement"); return; }
@@ -1558,6 +1591,644 @@ function deleteMeasure(id){
     S.measurements = S.measurements.filter(function(x){ return x.id!==id; });
     save(); go("measures"); toast("Entry deleted");
   });
+}
+
+/* ---------------- Google Health sync & push ----------------
+   Browser-only sign-in via Google Identity Services: client ID only,
+   no client secret anywhere. Token + last synced readings live in
+   localStorage alongside the rest of the app's data. Pulling uses the
+   read-only scopes; pushing Mooscles data back asks (on an explicit
+   tap, with a fresh consent) for the two write-only scopes as well. */
+var GH_CLIENT_ID = "589930931771-5fdv4e7c8lknhdt29qak236hu5f83e21.apps.googleusercontent.com";
+var GH_SCOPES = [
+  "https://www.googleapis.com/auth/googlehealth.health_metrics_and_measurements.readonly",
+  "https://www.googleapis.com/auth/googlehealth.sleep.readonly",
+  "https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly",
+  "https://www.googleapis.com/auth/googlehealth.profile.readonly"
+].join(" ");
+var GH_WRITE_SCOPES = [
+  "https://www.googleapis.com/auth/googlehealth.health_metrics_and_measurements.writeonly",
+  "https://www.googleapis.com/auth/googlehealth.activity_and_fitness.writeonly"
+];
+var GH_PUSH_SCOPES = GH_SCOPES + " " + GH_WRITE_SCOPES.join(" ");
+var GH_API = "https://health.googleapis.com/v4";
+var GH_BLOCKED_MSG = "Couldn't reach Google Health from this page — the request failed before Google replied (Safari calls it \"Load failed\"). That is a connection block between this hosted page and Google's API, not a problem with your sign-in or your data.";
+var GH_TOKEN_KEY = "wt-gh-token";
+var GH_DATA_KEY = "wt-gh-data";
+var GH_PUSH_KEY = "wt-gh-pushed";
+var ghTokenClients = {}, ghPending = null, ghSyncing = false, ghAutoTried = false, ghSyncStartedAt = 0, ghPushing = false, ghPushStartedAt = 0;
+
+function ghStoredToken(){ try{ var t = JSON.parse(localStorage.getItem(GH_TOKEN_KEY) || "null"); return (t && t.accessToken) ? t : null; }catch(e){ return null; } }
+function ghConnected(){ return !!ghStoredToken(); }
+function ghSaveToken(resp){
+  var t = { accessToken: resp.access_token, scopes: resp.scope || "", expiresAt: Date.now() + (Math.max(120, (resp.expires_in || 3600)) - 60) * 1000 };
+  try{ localStorage.setItem(GH_TOKEN_KEY, JSON.stringify(t)); }catch(e){}
+  return t.accessToken;
+}
+function ghClearToken(){ try{ localStorage.removeItem(GH_TOKEN_KEY); }catch(e){} }
+function ghData(){ try{ return JSON.parse(localStorage.getItem(GH_DATA_KEY) || "null"); }catch(e){ return null; } }
+function ghSaveData(d){ try{ localStorage.setItem(GH_DATA_KEY, JSON.stringify(d)); }catch(e){} }
+function ghGisReady(){ return !!(window.google && google.accounts && google.accounts.oauth2); }
+
+function ghFinishToken(tok, err){
+  var p = ghPending; ghPending = null;
+  if(!p) return;
+  clearTimeout(p.watchdog);
+  p.cb(tok, err);
+}
+function ghScopeError(code){
+  if(code === "invalid_scope") return "Google refused the write permission — the two write-only Google Health scopes aren't on this app's OAuth consent screen yet. In Google Cloud Console → OAuth consent screen → Scopes, add googlehealth.activity_and_fitness.writeonly and googlehealth.health_metrics_and_measurements.writeonly, save, then tap Push again.";
+  return "Google sign-in failed (" + code + ").";
+}
+function ghRequestToken(prompt, cb, scopes){
+  scopes = scopes || GH_SCOPES;
+  if(!ghGisReady()){ cb(null, "Google sign-in didn't load — check your connection and try again."); return; }
+  if(!ghTokenClients[scopes]){
+    ghTokenClients[scopes] = google.accounts.oauth2.initTokenClient({
+      client_id: GH_CLIENT_ID, scope: scopes,
+      callback: function(resp){
+        if(resp && resp.access_token) ghFinishToken(ghSaveToken(resp));
+        else if(resp && resp.error) ghFinishToken(null, ghScopeError(resp.error));
+        else ghFinishToken(null, "Google sign-in was cancelled.");
+      },
+      error_callback: function(err){
+        ghFinishToken(null, "Google sign-in failed" + (err && err.type ? " (" + err.type + ")" : "") + ".");
+      }
+    });
+  }
+  var client = ghTokenClients[scopes];
+  // A token request already in flight is superseded by this one.
+  if(ghPending) ghFinishToken(null, "Google sign-in was interrupted.");
+  // Safari can leave a silent token request hanging forever (no callback,
+  // no error) when its Google session needs interaction. Without a
+  // watchdog that wedges every later sync behind the in-flight flag, so
+  // fail the request after 20s with a message the user can act on. A late
+  // Google callback after the watchdog fires is ignored (ghPending null).
+  ghPending = { cb: cb, watchdog: setTimeout(function(){
+    ghFinishToken(null, "Google sign-in didn't respond — tap Sync now to try again.");
+  }, 20000) };
+  try{ client.requestAccessToken({ prompt: prompt }); }
+  catch(e){ ghFinishToken(null, "Google sign-in failed."); }
+}
+function ghGetToken(interactive, cb){
+  var t = ghStoredToken();
+  if(t && t.expiresAt > Date.now()){ cb(t.accessToken); return; }
+  // Token missing or expired: re-ask Google silently first; only show the
+  // sign-in prompt when this came from an explicit tap and silent failed.
+  ghRequestToken("", function(tok, err){
+    if(tok){ cb(tok); return; }
+    if(interactive) ghRequestToken("consent", cb);
+    else cb(null, "Google session expired — tap Sync now to sign in again.");
+  });
+}
+function ghFetchOnce(path, token){
+  // Bound every read: a request Safari leaves hanging would otherwise
+  // stall the whole sync (and the in-flight flag) indefinitely.
+  var ctrl = null, timer = null;
+  var opts = { headers: { "Authorization": "Bearer " + token } };
+  try{
+    if(window.AbortController){
+      ctrl = new AbortController(); opts.signal = ctrl.signal;
+      timer = setTimeout(function(){ try{ ctrl.abort(); }catch(e){} }, 12000);
+    }
+  }catch(e){}
+  function settle(){ if(timer){ clearTimeout(timer); timer = null; } }
+  return fetch(GH_API + path, opts).then(function(r){
+    if(r.status === 401){ var e = new Error("unauthorized"); e.code = 401; throw e; }
+    if(r.status === 404) return { dataPoints: [] }; // data type isn't on this account — treat as no data, not an error
+    if(!r.ok){
+      return r.json().catch(function(){ return null; }).then(function(j){
+        var msg = (j && j.error && j.error.message) ? j.error.message : "";
+        var e = new Error("HTTP " + r.status + (msg ? " — " + msg : ""));
+        e.code = r.status; throw e;
+      });
+    }
+    return r.json();
+  }).then(function(v){ settle(); return v; }, function(e){
+    settle();
+    if(e && e.name === "AbortError"){ var te = new Error("Request timed out"); te.code = "timeout"; throw te; }
+    if(e && e.name === "TypeError") e.code = "network"; // browser blocked/failed the request before Google replied
+    throw e;
+  });
+}
+function ghFetch(path, token){
+  // A network-level failure (Safari reports it as "Load failed") is often
+  // transient — retry the same read once before giving up on it.
+  return ghFetchOnce(path, token).catch(function(e){
+    if(e && e.name === "TypeError"){
+      return new Promise(function(res){ setTimeout(res, 600); }).then(function(){ return ghFetchOnce(path, token); });
+    }
+    throw e;
+  });
+}
+function ghFetchType(type, token){
+  // Some metrics exist under more than one data-type name; when given a
+  // list, try each name in turn and keep the first that returns points.
+  if(Array.isArray(type)){
+    var names = type, firstErrA = null, emptyA = null;
+    var stepA = function(i){
+      if(i >= names.length){ if(emptyA) return emptyA; throw firstErrA || new Error("request failed"); }
+      return ghFetchType(names[i], token).then(function(j){
+        if(j && j.dataPoints && j.dataPoints.length) return j;
+        if(!emptyA) emptyA = j;
+        return stepA(i + 1);
+      }, function(e){
+        if(e && e.code === 401) throw e;
+        if(!firstErrA) firstErrA = e;
+        return stepA(i + 1);
+      });
+    };
+    return stepA(0);
+  }
+  // The Health API expects data-point reads bounded by a time filter;
+  // an unbounded list comes back rejected or empty. Try the filtered
+  // reads first (two field spellings), then the plain list, and keep
+  // whichever returns points. A genuine error is rethrown so the caller
+  // can show what Google actually said instead of failing silently.
+  var since = new Date(Date.now() - 90*24*3600*1000).toISOString().replace(/\.\d{3}Z$/, "Z");
+  var base = "/users/me/dataTypes/" + type + "/dataPoints?pageSize=100";
+  var paths = [
+    base + "&filter=" + encodeURIComponent('interval.start_time >= "' + since + '"'),
+    base + "&filter=" + encodeURIComponent(type + '.interval.start_time >= "' + since + '"'),
+    base
+  ];
+  var firstErr = null, emptyJson = null;
+  function step(i){
+    if(i >= paths.length){
+      if(emptyJson) return emptyJson;
+      throw firstErr || new Error("request failed");
+    }
+    return ghFetch(paths[i], token).then(function(j){
+      if(j && j.dataPoints && j.dataPoints.length) return j;
+      if(!emptyJson) emptyJson = j;
+      return step(i + 1);
+    }, function(e){
+      if(e && e.code === 401) throw e;
+      if(!firstErr) firstErr = e;
+      return step(i + 1);
+    });
+  }
+  return step(0);
+}
+function ghPointTime(p){
+  var cands = [p.startTime, p.endTime, p.dateTime, p.time,
+    p.interval && p.interval.startTime, p.interval && p.interval.endTime,
+    p.civilStartTime && p.civilStartTime.dateTime, p.civilEndTime && p.civilEndTime.dateTime];
+  for(var i = 0; i < cands.length; i++){ var t = Date.parse(cands[i] || ""); if(!isNaN(t)) return t; }
+  return 0;
+}
+function ghNumbers(node, path, out){
+  if(node == null) return;
+  if(typeof node === "number"){ if(isFinite(node)) out.push({ path: path, value: node }); return; }
+  if(typeof node === "string"){ var s = node.trim(); if(/^-?\d+(\.\d+)?$/.test(s)) out.push({ path: path, value: parseFloat(s) }); return; }
+  if(Array.isArray(node)){ node.forEach(function(v){ ghNumbers(v, path, out); }); return; }
+  if(typeof node === "object"){ Object.keys(node).forEach(function(k){ ghNumbers(node[k], path ? path + "." + k.toLowerCase() : k.toLowerCase(), out); }); }
+}
+function ghPick(point, hints, min, max){
+  var nums = []; ghNumbers(point, "", nums);
+  var best = null;
+  nums.forEach(function(n){
+    if(n.value < min || n.value > max) return;
+    var score = 0;
+    hints.forEach(function(h, i){ if(n.path.indexOf(h) >= 0) score = Math.max(score, hints.length - i); });
+    if(score > 0 && (!best || score > best.score)) best = { score: score, value: n.value };
+  });
+  return best ? best.value : null;
+}
+function ghSleepPointInfo(p){
+  // One sleep point -> { hours, end } using its interval when present
+  // (unambiguous), falling back to duration fields in minutes or seconds.
+  var s = null, e = null;
+  [p.startTime, p.interval && p.interval.startTime].forEach(function(x){ var t = Date.parse(x || ""); if(!isNaN(t)) s = t; });
+  [p.endTime, p.interval && p.interval.endTime].forEach(function(x){ var t = Date.parse(x || ""); if(!isNaN(t)) e = t; });
+  if(s != null && e != null && e > s){
+    var ih = (e - s) / 3600000;
+    if(ih >= 0.5 && ih <= 24) return { hours: ih, end: e };
+  }
+  var mins = ghPick(p, ["minutesasleep", "minutes"], 30, 1500);
+  if(mins != null) return { hours: mins / 60, end: e || s || ghPointTime(p) || null };
+  var secs = ghPick(p, ["duration", "totalsleep", "value"], 1800, 86400);
+  if(secs != null) return { hours: secs / 3600, end: e || s || ghPointTime(p) || null };
+  return null;
+}
+function ghSleepSummary(json){
+  // Total sleep per night (sessions ending the same day are added up),
+  // most recent night first, capped at 14 nights.
+  var pts = (json && (json.dataPoints || json.data_points)) || [];
+  if(!Array.isArray(pts) || !pts.length) return null;
+  var byDay = {};
+  pts.forEach(function(p){
+    var info = ghSleepPointInfo(p);
+    if(!info || !info.end) return;
+    var ed = new Date(info.end);
+    var day = ed.getFullYear() + "-" + String(ed.getMonth() + 1).padStart(2, "0") + "-" + String(ed.getDate()).padStart(2, "0");
+    byDay[day] = (byDay[day] || 0) + info.hours;
+  });
+  var days = Object.keys(byDay).sort().reverse();
+  if(!days.length) return null;
+  var nights = days.slice(0, 14).map(function(d){ return { date: d, hours: Math.round(byDay[d] * 10) / 10 }; });
+  return { hours: nights[0].hours, nights: nights };
+}
+function ghExtract(kind, json){
+  var pts = (json && (json.dataPoints || json.data_points)) || [];
+  if(!Array.isArray(pts) || !pts.length) return null;
+  pts = pts.slice().sort(function(a, b){ return ghPointTime(b) - ghPointTime(a); });
+  var latest = pts[0];
+  if(kind === "weightKg"){
+    var w = ghPick(latest, ["kilogram", "weightkg", "kg", "weight", "value"], 20, 400);
+    if(w == null){ // value may be stored in grams
+      var g = ghPick(latest, ["weight", "value"], 20000, 400000);
+      if(g != null) w = Math.round(g / 10) / 100;
+    }
+    return w;
+  }
+  if(kind === "fatPercent"){
+    var f = ghPick(latest, ["percent", "fat", "value"], 0.5, 80);
+    if(f != null && f <= 1.5) f = Math.round(f * 1000) / 10; // stored as a fraction
+    return f;
+  }
+  if(kind === "restingHr") return ghPick(latest, ["bpm", "resting", "heartrate", "heart_rate", "value"], 30, 120);
+  if(kind === "steps"){
+    // Sum the samples that fall on the most recent day present in the data.
+    var byDay = {};
+    pts.forEach(function(p){
+      var v = ghPick(p, ["count", "steps", "value"], 0, 100000);
+      if(v == null) return;
+      var t = ghPointTime(p), day = t ? new Date(t).toDateString() : "all";
+      byDay[day] = (byDay[day] || 0) + v;
+    });
+    var days = Object.keys(byDay);
+    if(!days.length) return null;
+    days.sort(function(a, b){ return (Date.parse(b) || 0) - (Date.parse(a) || 0); });
+    return byDay[days[0]];
+  }
+  if(kind === "sleepHrs"){
+    var ss = ghSleepSummary(json);
+    return ss ? ss.hours : null;
+  }
+  if(kind === "heartRate") return ghPick(latest, ["bpm", "heartrate", "heart_rate", "value"], 30, 220);
+  if(kind === "vo2Max") return ghPick(latest, ["vo2max", "vo2", "value"], 15, 90);
+  if(kind === "exercise7d"){
+    var cutoff = Date.now() - 7*24*3600*1000, n7 = 0, timed = 0;
+    pts.forEach(function(p){ var t = ghPointTime(p); if(t){ timed++; if(t >= cutoff) n7++; } });
+    var c7 = timed ? n7 : pts.length;
+    return c7 > 0 ? c7 : null;
+  }
+  if(kind === "distanceKm" || kind === "calories" || kind === "activeMin"){
+    // Interval samples: total them for the most recent day present.
+    var hints = kind === "distanceKm" ? ["meters", "distance", "value"]
+      : kind === "calories" ? ["kcal", "calorie", "energy", "value"]
+      : ["minutes", "active", "value"];
+    var maxPt = kind === "distanceKm" ? 200000 : kind === "calories" ? 10000 : 600;
+    var byDay2 = {};
+    pts.forEach(function(p){
+      var v = ghPick(p, hints, 0, maxPt);
+      if(v == null) return;
+      var t = ghPointTime(p), day = t ? new Date(t).toDateString() : "all";
+      byDay2[day] = (byDay2[day] || 0) + v;
+    });
+    var ds = Object.keys(byDay2);
+    if(!ds.length) return null;
+    ds.sort(function(a, b){ return (Date.parse(b) || 0) - (Date.parse(a) || 0); });
+    var tot = byDay2[ds[0]];
+    if(kind === "distanceKm") return Math.round((tot >= 300 ? tot / 1000 : tot) * 100) / 100; // metres -> km
+    return Math.round(tot);
+  }
+  return null;
+}
+function ghApplySync(res){
+  var d = ghData() || {};
+  ["weightKg", "fatPercent", "restingHr", "sleepHrs", "steps", "heartRate", "distanceKm", "calories", "activeMin", "vo2Max", "exercise7d"].forEach(function(k){ if(res[k] != null) d[k] = res[k]; });
+  if(res.sleepNights && res.sleepNights.length) d.sleepNights = res.sleepNights;
+  if(res.failedLabels && res.failedLabels.length) d.lastPartial = "Some readings couldn't be fetched (" + res.failedLabels.join(", ") + ") — the rest synced fine.";
+  else delete d.lastPartial;
+  d.syncedAt = new Date().toISOString();
+  ghSaveData(d);
+  // Weight and body fat are real measurement fields: write them into today's
+  // entry (updating it if one already exists) so they feed the stats + chart.
+  if(res.weightKg != null || res.fatPercent != null){
+    var today = todayStr();
+    var ex = S.measurements.find(function(m){ return m.date === today; });
+    if(ex){
+      if(res.weightKg != null) ex.weightKg = res.weightKg;
+      if(res.fatPercent != null) ex.fatPercent = res.fatPercent;
+    } else {
+      var rec = { id: "m" + uid(), date: today, ghSource: true };
+      if(res.weightKg != null) rec.weightKg = res.weightKg;
+      if(res.fatPercent != null) rec.fatPercent = res.fatPercent;
+      S.measurements.push(rec);
+    }
+    save();
+  }
+}
+function ghSync(interactive, done){
+  if(ghSyncing){
+    // A sync left "running" for over 2 minutes is wedged, not working —
+    // the token and fetch timeouts should prevent it, but never let a
+    // stale flag block syncing for the life of the page.
+    if(ghSyncStartedAt && Date.now() - ghSyncStartedAt > 120000) ghSyncing = false;
+    else { if(done) done(false, "Sync already in progress — give it a few seconds, then check the card."); return; }
+  }
+  ghSyncing = true; ghSyncStartedAt = Date.now();
+  ghGetToken(interactive, function(token, err){
+    if(!token){
+      ghSyncing = false; ghSyncStartedAt = 0;
+      var msg = err || "Not signed in to Google Health.";
+      // Record token-stage failures too, so the card explains a failed
+      // sync instead of showing nothing.
+      var dx = ghData() || {}; dx.lastError = msg; ghSaveData(dx);
+      if(done) done(false, msg);
+      return;
+    }
+    var types = { weightKg: "weight", fatPercent: "body-fat", restingHr: "daily-resting-heart-rate", sleepHrs: "sleep", steps: "steps",
+      heartRate: "heart-rate", distanceKm: "distance",
+      calories: ["total-calories", "calories", "active-energy-burned"],
+      activeMin: ["active-minutes", "active-zone-minutes"],
+      vo2Max: "vo2-max", exercise7d: "exercise" };
+    var labels = { weightKg: "weight", fatPercent: "body fat", restingHr: "resting heart rate", sleepHrs: "sleep", steps: "steps",
+      heartRate: "heart rate", distanceKm: "distance", calories: "calories", activeMin: "active minutes", vo2Max: "VO2 max", exercise7d: "exercise" };
+    var keys = Object.keys(types), res = {}, errs = {}, unauthorized = false, blocked = false;
+    var chain = Promise.resolve();
+    keys.forEach(function(k){
+      chain = chain.then(function(){
+        return ghFetchType(types[k], token)
+          .then(function(json){
+            if(k === "sleepHrs"){
+              var ss = ghSleepSummary(json);
+              res.sleepHrs = ss ? ss.hours : null;
+              if(ss) res.sleepNights = ss.nights;
+            } else res[k] = ghExtract(k, json);
+          })
+          .catch(function(e){ if(e && e.code === 401) unauthorized = true; else if(e && e.code === "network"){ blocked = true; errs[k] = "Load failed"; } else if(e) errs[k] = e.message || String(e); });
+      });
+    });
+    chain.then(function(){
+      ghSyncing = false; ghSyncStartedAt = 0;
+      var got = keys.some(function(k){ return res[k] != null; });
+      if(unauthorized && !got) ghClearToken();
+      if(got){
+        // Whatever came back is a successful sync. A reading that isn't on
+        // the account (or returned nothing) is simply skipped; a reading
+        // whose fetch failed is noted on the card, not treated as failure.
+        res.failedLabels = keys.filter(function(k){ return errs[k]; }).map(function(k){ return labels[k]; });
+        var d0 = ghData() || {}; delete d0.lastError; ghSaveData(d0);
+        ghApplySync(res); if(done) done(true);
+      } else {
+        var firstErr = null;
+        keys.forEach(function(k){ if(!firstErr && errs[k]) firstErr = (Array.isArray(types[k]) ? types[k][0] : types[k]) + ": " + errs[k]; });
+        if(blocked){ var d1 = ghData() || {}; d1.lastError = GH_BLOCKED_MSG; ghSaveData(d1); }
+        else if(firstErr){ var d2 = ghData() || {}; d2.lastError = firstErr; ghSaveData(d2); }
+        if(done) done(false, unauthorized ? "Google session expired — tap Connect Google Health to sign in again."
+          : blocked ? GH_BLOCKED_MSG
+          : firstErr ? "Google Health didn't return your data (" + firstErr + ")."
+          : "Google Health returned no readings — nothing new to sync.");
+      }
+    });
+  });
+}
+/* ---------------- push Mooscles data to Google Health ----------------
+   The reverse direction: each workout becomes an `exercise` data point
+   and each measurement's weight / body fat becomes a `weight` /
+   `body-fat` point, created one by one (POST .../dataPoints) with the
+   write-only scopes. A local registry remembers what this browser has
+   already pushed, so a second tap doesn't create duplicates. */
+function ghPushed(){ try{ var p = JSON.parse(localStorage.getItem(GH_PUSH_KEY) || "null"); if(p && typeof p === "object"){ p.w = p.w || {}; p.m = p.m || {}; return p; } }catch(e){} return { w: {}, m: {} }; }
+function ghSavePushed(p){ try{ localStorage.setItem(GH_PUSH_KEY, JSON.stringify(p)); }catch(e){} }
+function ghUtcOffset(d){ return (-d.getTimezoneOffset() * 60) + "s"; }
+function ghIso(d){ return d.toISOString().replace(/\.\d{3}Z$/, "Z"); }
+function ghSampleTime(d){ return { physicalTime: ghIso(d), utcOffset: ghUtcOffset(d) }; }
+function ghMeasureTime(m){
+  // Measurements carry a date only — stamp them at local midday so the
+  // reading lands on the right day in Google Health.
+  var parts = String(m.date || "").slice(0, 10).split("-");
+  var d = (parts.length === 3) ? new Date(+parts[0], +parts[1] - 1, +parts[2], 12, 0, 0) : new Date();
+  return isNaN(d) ? new Date() : d;
+}
+function ghDataSource(){ return { recordingMethod: "MANUAL", platform: "GOOGLE_WEB_API" }; }
+function ghWeightPoint(m){
+  return { dataSource: ghDataSource(), weight: { weightGrams: Math.round(m.weightKg * 1000), sampleTime: ghSampleTime(ghMeasureTime(m)), notes: "Logged in Mooscles" } };
+}
+function ghBodyFatPoint(m){
+  return { dataSource: ghDataSource(), bodyFat: { percentage: m.fatPercent, sampleTime: ghSampleTime(ghMeasureTime(m)), notes: "Logged in Mooscles" } };
+}
+function ghExercisePoint(w){
+  var start = new Date(w.startedAt), end = new Date(w.endedAt || w.startedAt);
+  if(isNaN(start)) start = new Date();
+  var dur = Math.round(w.durationSec || 0);
+  if(!isNaN(end) && end > start) dur = Math.max(dur, Math.round((end - start) / 1000));
+  if(dur < 60) dur = 60; // Google rejects zero-length sessions
+  if(isNaN(end) || end <= start) end = new Date(start.getTime() + dur * 1000);
+  var notes = (w.exercises || []).map(function(ex){
+    var sets = ex.sets || [];
+    var done = sets.filter(function(s){ return s.completed; }).length || sets.length;
+    return ex.name + (done ? " × " + done + " sets" : "");
+  }).join(" · ");
+  notes = ("Logged in Mooscles" + (notes ? " — " + notes : "")).slice(0, 480);
+  return { dataSource: ghDataSource(), exercise: {
+    interval: { startTime: ghIso(start), startUtcOffset: ghUtcOffset(start), endTime: ghIso(end), endUtcOffset: ghUtcOffset(end) },
+    exerciseType: (w.amrapRounds != null ? "WORKOUT" : "WEIGHTLIFTING"),
+    displayName: String(w.title || "Workout").slice(0, 80),
+    activeDuration: dur + "s",
+    metricsSummary: {},
+    notes: notes
+  } };
+}
+function ghPushPlan(){
+  var reg = ghPushed(), plan = { workouts: [], weights: [], fats: [] };
+  S.workouts.slice().sort(function(a, b){ return a.startedAt < b.startedAt ? -1 : 1; }).forEach(function(w){ if(!reg.w[w.id]) plan.workouts.push(w); });
+  S.measurements.slice().sort(function(a, b){ return a.date < b.date ? -1 : 1; }).forEach(function(m){
+    if(m.ghSource) return; // this entry came FROM Google Health — don't push it back
+    var r = reg.m[m.id] || {};
+    if(m.weightKg != null && !r.weight) plan.weights.push(m);
+    if(m.fatPercent != null && !r.fat) plan.fats.push(m);
+  });
+  plan.readings = plan.weights.length + plan.fats.length;
+  plan.total = plan.workouts.length + plan.readings;
+  return plan;
+}
+function ghGetPushToken(cb){
+  var t = ghStoredToken();
+  if(t && t.expiresAt > Date.now() && t.scopes && t.scopes.indexOf("activity_and_fitness.writeonly") >= 0 && t.scopes.indexOf("health_metrics_and_measurements.writeonly") >= 0){ cb(t.accessToken); return; }
+  // Write access was never part of the original read-only consent, so ask
+  // explicitly — this request comes from the user's own Push tap.
+  ghRequestToken("consent", cb, GH_PUSH_SCOPES);
+}
+function ghPost(path, token, payload){
+  // One bounded write. A TypeError here means the browser failed/blocked
+  // the request before Google replied (Safari: "Load failed") — tag it
+  // "network" so the card can say that plainly instead of failing quietly.
+  var ctrl = null, timer = null;
+  var opts = { method: "POST", headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify(payload) };
+  try{
+    if(window.AbortController){
+      ctrl = new AbortController(); opts.signal = ctrl.signal;
+      timer = setTimeout(function(){ try{ ctrl.abort(); }catch(e){} }, 20000);
+    }
+  }catch(e){}
+  function settle(){ if(timer){ clearTimeout(timer); timer = null; } }
+  return fetch(GH_API + path, opts).then(function(r){
+    return r.json().catch(function(){ return null; }).then(function(j){
+      settle();
+      if(!r.ok || (j && j.error && j.error.message)){
+        var msg = (j && j.error && j.error.message) ? j.error.message : ("HTTP " + r.status);
+        var e = new Error("HTTP " + r.status + " — " + msg); e.code = r.status; throw e;
+      }
+      return j;
+    });
+  }, function(e){
+    settle();
+    if(e && e.name === "AbortError"){ var te = new Error("Request timed out"); te.code = "timeout"; throw te; }
+    if(e && e.name === "TypeError"){ var ne = new Error(GH_BLOCKED_MSG); ne.code = "network"; throw ne; }
+    throw e;
+  });
+}
+function ghPush(done){
+  if(ghPushing){
+    if(ghPushStartedAt && Date.now() - ghPushStartedAt > 180000) ghPushing = false;
+    else { if(done) done(false, "Push already in progress — give it a moment, then check the card."); return; }
+  }
+  var plan = ghPushPlan();
+  if(!plan.total){ if(done) done(true, "Everything in Mooscles is already in Google Health."); return; }
+  ghPushing = true; ghPushStartedAt = Date.now();
+  ghGetPushToken(function(token, err){
+    if(!token){
+      ghPushing = false; ghPushStartedAt = 0;
+      var msg = err || "Not signed in to Google Health.";
+      var dx = ghData() || {}; dx.lastPushError = msg; ghSaveData(dx);
+      if(done) done(false, msg);
+      return;
+    }
+    var reg = ghPushed();
+    var sent = { workouts: 0, readings: 0 }, failures = [], blocked = false, unauthorized = false, stopped = false;
+    var jobs = [];
+    plan.workouts.forEach(function(w){ jobs.push({ type: "exercise", item: w }); });
+    plan.weights.forEach(function(m){ jobs.push({ type: "weight", item: m }); });
+    plan.fats.forEach(function(m){ jobs.push({ type: "body-fat", item: m }); });
+    var chain = Promise.resolve();
+    jobs.forEach(function(job){
+      chain = chain.then(function(){
+        if(stopped) return;
+        var payload = job.type === "exercise" ? ghExercisePoint(job.item) : job.type === "weight" ? ghWeightPoint(job.item) : ghBodyFatPoint(job.item);
+        return ghPost("/users/me/dataTypes/" + job.type + "/dataPoints", token, payload).then(function(){
+          if(job.type === "exercise"){ reg.w[job.item.id] = new Date().toISOString(); sent.workouts++; }
+          else {
+            var r = reg.m[job.item.id] || {};
+            r[job.type === "weight" ? "weight" : "fat"] = new Date().toISOString();
+            reg.m[job.item.id] = r; sent.readings++;
+          }
+          ghSavePushed(reg);
+        }).catch(function(e){
+          if(e && e.code === "network"){ blocked = true; stopped = true; }
+          else if(e && e.code === 401){ unauthorized = true; stopped = true; }
+          else if(e) failures.push((job.type === "exercise" ? (job.item.title || "Workout") : job.type) + ": " + (e.message || String(e)));
+        });
+      });
+    });
+    chain.then(function(){
+      ghPushing = false; ghPushStartedAt = 0;
+      var d = ghData() || {};
+      var sentTotal = sent.workouts + sent.readings;
+      if(blocked){
+        d.lastPushError = GH_BLOCKED_MSG;
+        ghSaveData(d);
+        if(done) done(false, GH_BLOCKED_MSG);
+        return;
+      }
+      if(unauthorized && !sentTotal){
+        ghClearToken();
+        var um = "Google session expired — tap Connect Google Health to sign in again.";
+        d.lastPushError = um; ghSaveData(d);
+        if(done) done(false, um);
+        return;
+      }
+      if(sentTotal){
+        d.lastPushAt = new Date().toISOString();
+        d.lastPushSummary = sent.workouts + " workout" + (sent.workouts === 1 ? "" : "s") + " · " + sent.readings + " measurement reading" + (sent.readings === 1 ? "" : "s");
+        if(failures.length) d.lastPushError = "Some items didn't go through (" + failures.slice(0, 2).join("; ") + (failures.length > 2 ? "; +" + (failures.length - 2) + " more" : "") + ") — tap Push again to retry the rest.";
+        else delete d.lastPushError;
+        ghSaveData(d);
+        if(done) done(true, "Pushed " + d.lastPushSummary + " to Google Health ✓");
+      } else {
+        var fm = failures.length ? failures[0] : "Google Health didn't accept the data.";
+        d.lastPushError = fm; ghSaveData(d);
+        if(done) done(false, fm);
+      }
+    });
+  });
+}
+function pushGoogleHealth(){
+  var plan = ghPushPlan();
+  if(!plan.total){ toast("Everything in Mooscles is already in Google Health ✓"); return; }
+  confirmSheet("Push to Google Health?",
+    "This sends " + plan.workouts.length + " workout" + (plan.workouts.length === 1 ? "" : "s") + " and " + plan.readings + " measurement reading" + (plan.readings === 1 ? "" : "s") + " (weight & body fat) from this device to your Google Health account. Google will ask you to approve write access first — it lets Mooscles add data, and edit or delete only the data it adds.",
+    "Push", function(){
+      toast("Pushing to Google Health…");
+      ghPush(function(ok, msg){
+        if(route.name === "measures") render();
+        toast(msg || (ok ? "Pushed ✓" : "Push failed — see the Google Health card."), ok ? 3000 : 4200);
+      });
+    });
+}
+function connectGoogleHealth(){
+  toast("Opening Google sign-in…");
+  ghSync(true, function(ok, err){
+    if(route.name === "measures") render();
+    toast(ok ? "Google Health synced ✓" : (err || "Sync failed — try again."), ok ? 2600 : 3600);
+  });
+}
+function syncGoogleHealth(){
+  toast("Syncing Google Health…");
+  ghSync(true, function(ok, err){
+    if(route.name === "measures") render();
+    toast(ok ? "Google Health synced ✓" : (err || "Sync failed — try again."), ok ? 2600 : 3600);
+  });
+}
+function disconnectGoogleHealth(){
+  var t = ghStoredToken();
+  if(t && ghGisReady()){ try{ google.accounts.oauth2.revoke(t.accessToken, function(){}); }catch(e){} }
+  ghClearToken();
+  ghAutoTried = false;
+  ghPushing = false; ghPushStartedAt = 0;
+  try{ localStorage.removeItem(GH_DATA_KEY); }catch(e){}
+  render(); toast("Google Health disconnected");
+}
+function ghCard(){
+  var h = '<div class="card"><h3>Google Health</h3>';
+  if(ghConnected()){
+    var d = ghData(), bits = [];
+    if(d){
+      if(d.weightKg != null) bits.push("Weight " + fmtNum(d.weightKg) + " kg");
+      if(d.fatPercent != null) bits.push("Body fat " + fmtNum(d.fatPercent) + "%");
+      if(d.restingHr != null) bits.push("Resting HR " + Math.round(d.restingHr) + " bpm");
+      if(d.sleepHrs != null) bits.push("Sleep " + fmtNum(d.sleepHrs) + " h");
+      if(d.steps != null) bits.push("Steps " + Math.round(d.steps).toLocaleString());
+      if(d.heartRate != null) bits.push("Heart rate " + Math.round(d.heartRate) + " bpm");
+      if(d.distanceKm != null) bits.push("Distance " + fmtNum(d.distanceKm) + " km");
+      if(d.calories != null) bits.push("Calories " + Math.round(d.calories).toLocaleString() + " kcal");
+      if(d.activeMin != null) bits.push("Active " + Math.round(d.activeMin) + " min");
+      if(d.vo2Max != null) bits.push("VO2 max " + fmtNum(d.vo2Max));
+      if(d.exercise7d != null) bits.push("Exercise sessions (7d) " + Math.round(d.exercise7d));
+    }
+    h += '<p class="sub">' + (bits.length ? esc(bits.join(" · ")) : "Connected — tap Sync now to pull your latest readings.") + '</p>';
+    if(d && d.sleepNights && d.sleepNights.length > 1){
+      var last7 = d.sleepNights.slice(0, 7);
+      var savg = last7.reduce(function(a, n){ return a + n.hours; }, 0) / last7.length;
+      h += '<p class="sub">Sleep — ' + last7.length + '-night average ' + fmtNum(Math.round(savg * 10) / 10) + ' h · last night ' + fmtNum(d.sleepNights[0].hours) + ' h</p>';
+    }
+    if(d && d.lastPartial) h += '<p class="sub">' + esc(d.lastPartial) + '</p>';
+    if(d && d.lastError) h += '<p class="sub danger-text">Last sync problem: ' + esc(d.lastError) + '</p>';
+    if(d && d.syncedAt) h += '<p class="sub">Last synced ' + esc(new Date(d.syncedAt).toLocaleString()) + '</p>';
+    h += '<div class="grid2" style="margin-top:10px"><button class="btn secondary" onclick="syncGoogleHealth()">Sync now</button><button class="btn secondary" onclick="disconnectGoogleHealth()">Disconnect</button></div>';
+    var plan = ghPushPlan();
+    h += '<p class="sub" style="margin-top:12px">Push Mooscles → Google Health: ' + (plan.total ? plan.workouts.length + ' workout' + (plan.workouts.length === 1 ? '' : 's') + ' · ' + plan.readings + ' measurement reading' + (plan.readings === 1 ? '' : 's') + ' not yet pushed.' : 'everything here has been pushed.') + '</p>';
+    if(d && d.lastPushSummary && d.lastPushAt) h += '<p class="sub">Last push ' + esc(new Date(d.lastPushAt).toLocaleString()) + ' — ' + esc(d.lastPushSummary) + ' added.</p>';
+    if(d && d.lastPushError) h += '<p class="sub danger-text">Last push problem: ' + esc(d.lastPushError) + '</p>';
+    h += '<button class="btn secondary" style="margin-top:10px" onclick="pushGoogleHealth()">Push to Google Health</button>';
+  } else {
+    h += '<p class="sub">Pull weight, body fat, heart rate, sleep, steps, exercise, calories, distance and more from Google Health into Measurements — and push your Mooscles workouts, weight and body fat back the other way.</p>';
+    h += '<button class="btn secondary" style="margin-top:10px" onclick="connectGoogleHealth()">Connect Google Health</button>';
+  }
+  return h + '</div>';
 }
 
 /* ---------------- data: backup & CSV ---------------- */
@@ -1591,9 +2262,9 @@ document.getElementById("fileInput").addEventListener("change", function(e){
 function doImportJson(text){
   var parsed = JSON.parse(text);
   var data = parsed && parsed.data ? parsed.data : parsed;
-  if(!data || !Array.isArray(data.workouts) || !Array.isArray(data.routines)) throw new Error("not a backup file");
+  if(!data || !Array.isArray(data.workouts)) throw new Error("not a backup file");
   confirmSheet("Replace your data?", "Importing replaces your current routines, history and measures with the backup's.", "Replace", function(){
-    S = Object.assign(blankState(), data); save(); draft=null; saveDraft(); render(); toast("Backup imported");
+    S = normalizeState(data); save(); draft=null; saveDraft(); ghAutoTried = false; render(); toast("Backup imported");
   });
 }
 function csvEscape(v){ v = v==null?"":String(v); return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; }
@@ -1640,7 +2311,8 @@ function doImportCsv(text){
   rows.slice(1).forEach(function(r){
     var title = (r[iTitle]||"").trim(); if(!title) return;
     var startRaw = (r[iStart]||"").trim();
-    var start = startRaw ? new Date(startRaw.replace(" ","T")).toISOString() : new Date().toISOString();
+    var startD = startRaw ? new Date(startRaw.replace(" ","T")) : null;
+    var start = (startD && !isNaN(startD)) ? startD.toISOString() : new Date().toISOString();
     var key = title+"|"+start;
     if(!byKey[key]){ byKey[key] = { id:"w"+uid(), title:title, routineId:null, startedAt:start, endedAt:start, durationSec:0, exercises:[], _map:{} }; order.push(key); }
     var w = byKey[key];
